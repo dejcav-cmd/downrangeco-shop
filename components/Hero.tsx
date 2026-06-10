@@ -149,8 +149,8 @@ export default function Hero() {
         {/* CTAs */}
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
           <a
-            href={STORE_URL}
-            target="_blank"
+            href="/products"
+            
             rel="noopener noreferrer"
             style={{
               background: "var(--gold)",

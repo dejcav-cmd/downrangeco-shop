@@ -61,7 +61,7 @@ export default function MissionStrip() {
           something.
         </p>
         <a
-          href={STORE_URL}
+          href="/products"
           target="_blank"
           rel="noopener noreferrer"
           style={{
