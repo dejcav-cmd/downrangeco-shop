@@ -107,3 +107,12 @@ export function getCategory(product: PrintifyProduct): string {
 export function getShopInfo() {
   return { shopId: SHOP_ID, base: BASE };
 }
+
+// Debug helper — log what URL we're building
+export function debugProductUrl(product: PrintifyProduct): string {
+  const handle = product.external?.handle;
+  const slug = product.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  console.log(`Product ${product.id}: external=${JSON.stringify(product.external)}, slug=${slug}`);
+  if (handle) return `https://downrange-co.printify.me/products/${handle}`;
+  return `https://downrange-co.printify.me/products/${slug}`;
+}
