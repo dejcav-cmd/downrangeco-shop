@@ -3,6 +3,7 @@ import { useState } from "react";
 
 interface Product {
   id: string;
+  handle: string;
   title: string;
   image: string;
   price: string;
@@ -112,7 +113,7 @@ function ProductCard({ product }: { product: Product }) {
           paddingBottom: "12px",
         }}>
           <a
-            href={`/products/${product.id}`}
+            href={`/products/${product.handle}`}
             
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}

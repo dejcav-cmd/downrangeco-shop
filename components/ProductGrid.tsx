@@ -7,6 +7,7 @@ const CATEGORIES = ["All", "Hunting", "2A / Patriot", "Military / Vet", "Long Ra
 
 interface Product {
   id: string;
+  handle: string;
   title: string;
   image: string;
   price: string;
@@ -17,8 +18,8 @@ interface Product {
 interface Props {
   products: Product[];
   currentCategory: string;
-  currentPage: number;
-  totalPages: number;
+  currentPage?: number;
+  totalPages?: number;
 }
 
 export default function ProductGrid({ products, currentCategory, currentPage, totalPages }: Props) {
@@ -82,9 +83,9 @@ export default function ProductGrid({ products, currentCategory, currentPage, to
       )}
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {(totalPages ?? 0) > 1 && (
         <div style={{ display: "flex", gap: "8px", justifyContent: "center", marginTop: "48px" }}>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+          {Array.from({ length: totalPages ?? 0 }, (_, i) => i + 1).map((p) => (
             <button
               key={p}
               onClick={() => router.push(`/products?page=${p}`)}
@@ -93,11 +94,11 @@ export default function ProductGrid({ products, currentCategory, currentPage, to
                 fontSize: "11px",
                 letterSpacing: "0.1em",
                 padding: "8px 14px",
-                background: p === currentPage ? "var(--gold)" : "transparent",
-                border: `1px solid ${p === currentPage ? "var(--gold)" : "rgba(255,255,255,0.06)"}`,
-                color: p === currentPage ? "#09090B" : "var(--muted)",
+                background: p === (currentPage ?? 1) ? "var(--gold)" : "transparent",
+                border: `1px solid ${p === (currentPage ?? 1) ? "var(--gold)" : "rgba(255,255,255,0.06)"}`,
+                color: p === (currentPage ?? 1) ? "#09090B" : "var(--muted)",
                 cursor: "pointer",
-                fontWeight: p === currentPage ? 600 : 400,
+                fontWeight: p === (currentPage ?? 1) ? 600 : 400,
               }}
             >
               {p}
@@ -153,7 +154,7 @@ function ProductCard({ product }: { product: Product }) {
           paddingBottom: "14px",
         }}>
           <a
-            href={`/products/${product.id}`}
+            href={`/products/${product.handle}`}
             
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
@@ -209,7 +210,7 @@ function ProductCard({ product }: { product: Product }) {
             {product.price}
           </span>
           <a
-            href={`/products/${product.id}`}
+            href={`/products/${product.handle}`}
             
             rel="noopener noreferrer"
             style={{
