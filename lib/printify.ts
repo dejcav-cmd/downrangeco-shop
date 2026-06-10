@@ -13,6 +13,7 @@ export interface PrintifyVariant {
   title: string;
   price: number; // cents
   is_enabled: boolean;
+  options?: Record<string, string>;
 }
 
 export interface PrintifyProduct {
@@ -23,6 +24,7 @@ export interface PrintifyProduct {
   variants: PrintifyVariant[];
   tags: string[];
   visible: boolean;
+  external?: { id: string; handle: string } | null;
 }
 
 export interface PrintifyProductsResponse {
@@ -37,7 +39,7 @@ export async function getProducts(page = 1, limit = 24): Promise<PrintifyProduct
     `${BASE}/shops/${SHOP_ID}/products.json?page=${page}&limit=${limit}`,
     {
       headers: { Authorization: `Bearer ${PRINTIFY_TOKEN}` },
-      next: { revalidate: 300 }, // cache 5 min
+      next: { revalidate: 300 },
     }
   );
   if (!res.ok) throw new Error(`Printify API error: ${res.status}`);
@@ -61,10 +63,20 @@ export function getDefaultImage(product: PrintifyProduct): string {
   return def?.src ?? product.images[0]?.src ?? "";
 }
 
+export function getAllImages(product: PrintifyProduct): string[] {
+  return product.images.map((i) => i.src).filter(Boolean).slice(0, 6);
+}
+
 export function getMinPrice(product: PrintifyProduct): number {
   const enabled = product.variants.filter((v) => v.is_enabled);
   if (!enabled.length) return 0;
   return Math.min(...enabled.map((v) => v.price));
+}
+
+export function getMaxPrice(product: PrintifyProduct): number {
+  const enabled = product.variants.filter((v) => v.is_enabled);
+  if (!enabled.length) return 0;
+  return Math.max(...enabled.map((v) => v.price));
 }
 
 export function formatPrice(cents: number): string {
@@ -72,15 +84,26 @@ export function formatPrice(cents: number): string {
 }
 
 export function getProductUrl(product: PrintifyProduct): string {
-  return `https://downrange-co.printify.me/products/${product.id}`;
+  // Use external handle (slug) — what Printify Pop-Up Store actually uses
+  const handle = product.external?.handle;
+  if (handle) return `https://downrange-co.printify.me/products/${handle}`;
+  // Fallback: slugify title
+  const slug = product.title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+  return `https://downrange-co.printify.me/products/${slug}`;
 }
 
-/** Derive a category tag from product tags */
 export function getCategory(product: PrintifyProduct): string {
   const tags = product.tags.map((t) => t.toLowerCase());
-  if (tags.some((t) => ["hunting", "elk", "deer", "turkey", "waterfowl", "duck", "bow", "archery"].includes(t))) return "Hunting";
-  if (tags.some((t) => ["2a", "patriot", "second amendment", "constitutional", "firearm"].includes(t))) return "2A / Patriot";
-  if (tags.some((t) => ["military", "veteran", "vet", "army", "marines", "navy", "air force"].includes(t))) return "Military / Vet";
-  if (tags.some((t) => ["long range", "precision", "mrad", "milradian", "sniper"].includes(t))) return "Long Range";
+  if (tags.some((t) => ["hunting","elk","deer","turkey","waterfowl","duck","bow","archery","rifle","shotgun"].includes(t))) return "Hunting";
+  if (tags.some((t) => ["2a","patriot","second amendment","constitutional","firearm","1776","liberty"].includes(t))) return "2A / Patriot";
+  if (tags.some((t) => ["military","veteran","vet","army","marines","navy","air force","usmc","usaf","soldier"].includes(t))) return "Military / Vet";
+  if (tags.some((t) => ["long range","precision","mrad","milradian","sniper","rimfire","ballistics"].includes(t))) return "Long Range";
   return "Apparel";
+}
+
+export function getShopInfo() {
+  return { shopId: SHOP_ID, base: BASE };
 }

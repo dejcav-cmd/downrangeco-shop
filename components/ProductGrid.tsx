@@ -153,8 +153,8 @@ function ProductCard({ product }: { product: Product }) {
           paddingBottom: "14px",
         }}>
           <a
-            href={product.url}
-            target="_blank"
+            href={`/products/${product.id}`}
+            
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
             style={{
@@ -209,8 +209,8 @@ function ProductCard({ product }: { product: Product }) {
             {product.price}
           </span>
           <a
-            href={product.url}
-            target="_blank"
+            href={`/products/${product.id}`}
+            
             rel="noopener noreferrer"
             style={{
               fontFamily: "var(--font-mono)",
