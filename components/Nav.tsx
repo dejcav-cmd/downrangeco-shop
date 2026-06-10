@@ -8,11 +8,15 @@ export default function Nav() {
       backdropFilter: "blur(12px)",
       borderBottom: "1px solid rgba(255,255,255,0.06)",
       display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: "0 32px", height: "60px",
+      padding: "0 32px", height: "80px",
     }}>
-      {/* Logo */}
-      <a href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", height: "42px" }}>
-        <img src="/logo.png" alt="Down Range Co." style={{ height: "38px", width: "auto", objectFit: "contain" }} />
+      {/* Logo — same proportions as DownRange portal masthead */}
+      <a href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", height: "100%" }}>
+        <img
+          src="/logo.png"
+          alt="Down Range Co."
+          style={{ height: "62px", width: "auto", maxWidth: "340px", objectFit: "contain" }}
+        />
       </a>
 
       {/* Desktop links */}
@@ -24,9 +28,12 @@ export default function Nav() {
           { label: "Military / Vet", href: "/products?category=Military+%2F+Vet" },
         ].map((link) => (
           <li key={link.label}>
-            <a href={link.href} style={{ fontFamily: "var(--font-mono)", fontSize: "11px", fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--muted)", textDecoration: "none", transition: "color 0.2s" }}
+            <a
+              href={link.href}
+              style={{ fontFamily: "var(--font-mono)", fontSize: "11px", fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--muted)", textDecoration: "none", transition: "color 0.2s" }}
               onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "var(--gold)")}
-              onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "var(--muted)")}>
+              onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "var(--muted)")}
+            >
               {link.label}
             </a>
           </li>
@@ -34,11 +41,18 @@ export default function Nav() {
       </ul>
 
       {/* CTA */}
-      <a href="/products" style={{ background: "rgba(200,146,42,0.12)", border: "1px solid rgba(200,146,42,0.28)", color: "var(--gold)", fontFamily: "var(--font-mono)", fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", padding: "8px 16px", textDecoration: "none", whiteSpace: "nowrap" }}>
+      <a
+        href="/products"
+        style={{ background: "rgba(200,146,42,0.12)", border: "1px solid rgba(200,146,42,0.28)", color: "var(--gold)", fontFamily: "var(--font-mono)", fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", padding: "9px 18px", textDecoration: "none", whiteSpace: "nowrap", transition: "background 0.2s" }}
+        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(200,146,42,0.22)")}
+        onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(200,146,42,0.12)")}
+      >
         Shop Now →
       </a>
 
-      <style>{`@media(max-width:768px){.nav-links{display:none!important}}`}</style>
+      <style>{`
+        @media(max-width:768px) { .nav-links { display: none !important; } }
+      `}</style>
     </nav>
   );
 }

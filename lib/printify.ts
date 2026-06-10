@@ -84,15 +84,32 @@ export function formatPrice(cents: number): string {
 }
 
 export function getProductUrl(product: PrintifyProduct): string {
-  // Use external handle (slug) — what Printify Pop-Up Store actually uses
-  const handle = product.external?.handle;
-  if (handle) return `https://downrange-co.printify.me/products/${handle}`;
-  // Fallback: slugify title
-  const slug = product.title
+  const handle = product.external?.handle ?? "";
+
+  // handle may be a full URL like "https://store.myshopify.com/products/my-tee"
+  // or just a slug like "my-tee" — extract just the final path segment
+  let slug = handle;
+  if (handle.includes("/products/")) {
+    slug = handle.split("/products/").pop() ?? "";
+  } else if (handle.startsWith("http")) {
+    // Some other full URL — take last path segment
+    slug = handle.split("/").pop() ?? "";
+  }
+
+  // Clean the slug
+  slug = slug.replace(/[^a-z0-9-]/gi, "-").replace(/(^-|-$)/g, "").toLowerCase();
+
+  // If we got a valid slug from external, use it
+  if (slug && slug.length > 2) {
+    return `https://downrange-co.printify.me/products/${slug}`;
+  }
+
+  // Final fallback: slugify the product title
+  const titleSlug = product.title
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
-  return `https://downrange-co.printify.me/products/${slug}`;
+  return `https://downrange-co.printify.me/products/${titleSlug}`;
 }
 
 export function getCategory(product: PrintifyProduct): string {
