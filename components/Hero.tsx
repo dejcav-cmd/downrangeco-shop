@@ -11,6 +11,9 @@ export default function Hero() {
         alignItems: "flex-end",
         overflow: "hidden",
         background: "var(--bg2)",
+        backgroundImage: "url('/hero.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center 30%",
       }}
     >
       {/* Grid overlay */}
@@ -19,9 +22,9 @@ export default function Hero() {
           position: "absolute",
           inset: 0,
           background: `
-            linear-gradient(135deg, rgba(200,146,42,0.05) 0%, transparent 55%),
-            repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.018) 40px),
-            repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.018) 40px)
+            linear-gradient(to right, rgba(9,9,11,0.85) 0%, rgba(9,9,11,0.55) 60%, rgba(9,9,11,0.2) 100%),
+            repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.012) 40px),
+            repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.012) 40px)
           `,
         }}
       />
