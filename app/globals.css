@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+:root {
+  --font-bebas: 'Bebas Neue', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-sans: 'IBM Plex Sans', sans-serif;
+  --bg: #09090B;
+  --bg2: #111113;
+  --bg3: #1A1A1D;
+  --gold: #C8922A;
+  --gold-light: #E0A840;
+  --gold-dim: rgba(200, 146, 42, 0.12);
+  --gold-border: rgba(200, 146, 42, 0.28);
+  --text: #F0EDE8;
+  --muted: #888888;
+  --card: #141416;
+  --card-border: rgba(255, 255, 255, 0.06);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  margin: 0;
+  padding: 0;
+}
