@@ -5,11 +5,18 @@ const ENDPOINT = `https://${SHOPIFY_DOMAIN}/api/${API_VERSION}/graphql.json`;
 
 // ── Core fetcher ────────────────────────────────────────────────────
 async function shopifyFetch<T>(query: string, variables?: Record<string, any>, cache: RequestCache = "no-store"): Promise<T> {
+  // shpat_ = private token (Headless channel) → use private header
+  // anything else = public token → use public header
+  const isPrivateToken = STOREFRONT_TOKEN?.startsWith("shpat_");
+  const tokenHeader = isPrivateToken
+    ? "Shopify-Storefront-Private-Token"
+    : "X-Shopify-Storefront-Access-Token";
+
   const res = await fetch(ENDPOINT, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Shopify-Storefront-Access-Token": STOREFRONT_TOKEN,
+      [tokenHeader]: STOREFRONT_TOKEN,
     },
     body: JSON.stringify({ query, variables }),
     next: { revalidate: 300 },
