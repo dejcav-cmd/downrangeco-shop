@@ -1545,8 +1545,16 @@ function SocialLinksTab({ adminKey }:any) {
           ⚠ Some enabled platforms have no URL — they will be hidden in the footer until a URL is added.
         </div>
       )}
-      <div style={{display:"flex",alignItems:"center",gap:14}}>
+      <div style={{display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
         <Btn onClick={save} disabled={saving}>{saving?"Saving…":"💾 Save Social Links"}</Btn>
+        <Btn onClick={async()=>{
+          const r=await fetch("/api/social/test",{headers:{"x-admin-key":adminKey}});
+          const d=await r.json();
+          const msg2=d.envOk
+            ? `Redis OK. Write:${d.write?.ok?"✓":"✗"}(${d.write?.status}) Read:${d.read?.ok?"✓":"✗"} Config:${d.socialConfig?.body?.slice(0,80)}`
+            : `ENV VARS MISSING: ${d.message}`;
+          alert(msg2);
+        }} color="ghost" size="sm">🔍 Test Redis</Btn>
         {msg&&<span style={{...m(9),color:msg.startsWith("✓")?S.greenText:"#e08080"}}>{msg}</span>}
       </div>
     </div>
