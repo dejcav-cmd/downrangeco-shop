@@ -37,11 +37,41 @@ function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
 }
 
 const timeline = [
-  { year: "2024", label: "The Idea", body: "Tired of scrolling through mainstream news that either ignored or misrepresented the firearms community, DJ Cavalcanti started building something different — a real intelligence portal for gun owners, hunters, and 2A advocates." },
-  { year: "Early 2025", label: "DownRange Portal Launches", body: "downrangeco.com goes live — a Next.js-powered news and intelligence hub covering legislation, gear, hunting seasons, and Second Amendment news. Built from scratch, by one person, in Washington State." },
-  { year: "Mid 2025", label: "The Community Responds", body: "Readers started asking for gear. Not just any gear — apparel that actually meant something. That reflected the lifestyle, not a corporate idea of it. The apparel brand was born from that feedback." },
-  { year: "Late 2025", label: "400+ Designs", body: "Working directly with Printify, DJ developed an entire design library — rifle hunting, bow, waterfowl, precision shooting, 2A patriot, military/vet — each designed with the actual community in mind." },
-  { year: "2026", label: "The Full Platform", body: "Today Down Range Co. is both a daily-read news portal and a full apparel brand. One mission: give the firearms and hunting community a home they can be proud of — online and on their back." },
+  {
+    year: "Jan 2026",
+    label: "The Breaking Point",
+    tag: "// Origin",
+    body: "The news cycle hit a new low. Three major 2A bills moving through state legislatures — no coverage. A landmark Bruen-based ruling — buried. DJ Cavalcanti had been watching it happen for years. The firearms community was invisible in its own country's media. That month, he started building.",
+    accent: false,
+  },
+  {
+    year: "Feb 2026",
+    label: "DownRange Portal Goes Live",
+    tag: "// The mission begins",
+    body: "downrangeco.com launches — a real-time intelligence portal covering legislation, court cases, gear reviews, hunting seasons, and Second Amendment news. No corporate backing. No editorial board. One person in Washington State, writing for the people who actually live this.",
+    accent: true,
+  },
+  {
+    year: "Apr 2026",
+    label: "The Reader Request",
+    tag: "// The community speaks",
+    body: "The portal found its audience fast. Then came the messages: where do I get gear that actually represents this? Not the big-box camo. Not the corporate tactical aesthetic. The requests were specific — hunting designs with soul, 2A gear with conviction, military/vet graphics with real respect.",
+    accent: false,
+  },
+  {
+    year: "May 2026",
+    label: "400+ Designs. One Vision.",
+    tag: "// The apparel launches",
+    body: "Working with Printify's US print network, the design library comes to life — rifle hunting at first light, bow season in the hardwoods, precision long-range, 2A patriot, waterfowl, military veteran. Every design made by someone who carries daily, hunts public land, and believes the Second Amendment is the one that protects all the others.",
+    accent: true,
+  },
+  {
+    year: "Jun 2026",
+    label: "Both Barrels",
+    tag: "// Right now",
+    body: "Today Down Range Co. is two things with one soul: a daily-read news portal and a growing apparel brand. The portal keeps the community informed. The gear lets them say it out loud. Both built in Washington State. Both built for the same reason — because freedom isn't just a word on a hat. It's a responsibility.",
+    accent: false,
+  },
 ];
 
 const values = [
@@ -51,9 +81,66 @@ const values = [
   { icon: "🌲", title: "Washington-built", body: "From the Pacific Northwest — elk country, whitetail country, waterfowl country. The designs reflect actual terrain, actual seasons, actual hunts." },
 ];
 
-export default function AboutContent() {
-  const [activeYear, setActiveYear] = useState(0);
 
+function TimelineRow({ item, index, last }: { item: any; index: number; last: boolean }) {
+  const { ref, inView } = useInView(0.15);
+  const isAccent = item.accent;
+
+  return (
+    <div ref={ref} className="timeline-row" style={{
+      display: "flex", gap: 0, alignItems: "flex-start",
+      opacity: inView ? 1 : 0, transform: inView ? "translateX(0)" : "translateX(-20px)",
+      transition: `opacity 0.6s ease ${index * 120}ms, transform 0.6s ease ${index * 120}ms`,
+      paddingBottom: last ? 0 : 0,
+    }}>
+      {/* Year column */}
+      <div className="timeline-year-col" style={{ width: 120, flexShrink: 0, paddingTop: 18, textAlign: "right", paddingRight: 28 }}>
+        <div style={{ fontFamily: "var(--font-bebas)", fontSize: 22, letterSpacing: "0.06em", color: isAccent ? "var(--gold)" : "rgba(200,146,42,0.5)", lineHeight: 1 }}>
+          {item.year.split(" ")[0]}
+        </div>
+        <div style={{ fontFamily: "var(--font-bebas)", fontSize: 22, letterSpacing: "0.06em", color: isAccent ? "var(--gold)" : "rgba(200,146,42,0.5)", lineHeight: 1 }}>
+          {item.year.split(" ")[1] || ""}
+        </div>
+      </div>
+
+      {/* Node */}
+      <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", width: 0, position: "relative" }}>
+        <div style={{
+          width: isAccent ? 16 : 10, height: isAccent ? 16 : 10,
+          borderRadius: "50%",
+          background: isAccent ? "var(--gold)" : "var(--bg3)",
+          border: `2px solid ${isAccent ? "var(--gold)" : "rgba(200,146,42,0.5)"}`,
+          marginTop: isAccent ? 20 : 23,
+          marginLeft: isAccent ? -8 : -5,
+          boxShadow: isAccent ? "0 0 12px rgba(200,146,42,0.4)" : "none",
+          flexShrink: 0,
+          zIndex: 1,
+        }} />
+      </div>
+
+      {/* Content */}
+      <div style={{ flex: 1, paddingLeft: 36, paddingBottom: last ? 0 : 52, paddingTop: 14 }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--gold)", marginBottom: 6, opacity: 0.7 }}>
+          {item.tag}
+        </div>
+        <div style={{
+          fontFamily: "var(--font-bebas)", fontSize: "clamp(20px, 3vw, 28px)", letterSpacing: "0.04em",
+          color: isAccent ? "var(--text)" : "var(--text)", lineHeight: 1,
+          marginBottom: 14,
+          paddingLeft: isAccent ? 14 : 0,
+          borderLeft: isAccent ? "3px solid var(--gold)" : "none",
+        }}>
+          {item.label}
+        </div>
+        <p style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.8, fontWeight: 300, maxWidth: 540, margin: 0 }}>
+          {item.body}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default function AboutContent() {
   return (
     <div style={{ color: "var(--text)", fontFamily: "var(--font-sans)" }}>
 
@@ -131,47 +218,39 @@ export default function AboutContent() {
       </section>
 
       {/* ── TIMELINE ── */}
-      <section style={{ background: "var(--bg3)", borderTop: "1px solid rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "100px 64px" }}>
-        <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
+      <section style={{ background: "var(--bg2)", borderTop: "1px solid rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "100px 64px", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: "900px", height: "600px", background: "radial-gradient(ellipse, rgba(200,146,42,0.04) 0%, transparent 65%)", pointerEvents: "none" }} />
+
+        <div style={{ maxWidth: "920px", margin: "0 auto", position: "relative", zIndex: 1 }}>
           <FadeIn>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--gold)", marginBottom: "12px" }}>
-              // Timeline
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--gold)", marginBottom: "12px", display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ display: "inline-block", width: 32, height: 1, background: "var(--gold)" }} />
+              How we got here
             </div>
-            <h2 style={{ fontFamily: "var(--font-bebas)", fontSize: "clamp(36px, 5vw, 60px)", letterSpacing: "0.04em", marginBottom: "56px" }}>
-              HOW WE GOT <span style={{ color: "var(--gold)" }}>HERE</span>
+            <h2 style={{ fontFamily: "var(--font-bebas)", fontSize: "clamp(40px, 5vw, 64px)", lineHeight: 0.92, letterSpacing: "0.03em", marginBottom: "72px" }}>
+              2026. <span style={{ color: "var(--gold)" }}>BUILT FROM</span><br />SCRATCH.
             </h2>
           </FadeIn>
 
-          <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: "0", position: "relative" }}>
-            {/* Year selector */}
-            <div style={{ borderRight: "1px solid rgba(255,255,255,0.08)", paddingRight: "40px" }}>
-              {timeline.map((item, i) => (
-                <button key={i} onClick={() => setActiveYear(i)} style={{ display: "block", width: "100%", textAlign: "left", background: "transparent", border: "none", padding: "16px 0", cursor: "pointer", borderBottom: "1px solid rgba(255,255,255,0.04)", position: "relative" }}>
-                  <div style={{ fontFamily: "var(--font-bebas)", fontSize: "28px", letterSpacing: "0.06em", color: activeYear === i ? "var(--gold)" : "rgba(255,255,255,0.2)", transition: "color 0.2s", lineHeight: 1 }}>{item.year}</div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: "0.14em", textTransform: "uppercase", color: activeYear === i ? "var(--muted)" : "rgba(255,255,255,0.15)", transition: "color 0.2s", marginTop: "3px" }}>{item.label}</div>
-                  {activeYear === i && <div style={{ position: "absolute", right: "-1px", top: 0, bottom: 0, width: "2px", background: "var(--gold)" }} />}
-                </button>
-              ))}
-            </div>
+          {/* Vertical timeline */}
+          <div style={{ position: "relative" }}>
+            {/* Spine */}
+            <div style={{ position: "absolute", left: "119px", top: 24, bottom: 24, width: "1px", background: "linear-gradient(to bottom, transparent, rgba(200,146,42,0.5) 8%, rgba(200,146,42,0.5) 92%, transparent)" }} />
 
-            {/* Content */}
-            <div style={{ paddingLeft: "56px", display: "flex", alignItems: "center" }}>
-              <div key={activeYear} style={{ animation: "fadeUp 0.4s ease" }}>
-                <div style={{ fontFamily: "var(--font-bebas)", fontSize: "clamp(32px, 4vw, 52px)", letterSpacing: "0.04em", color: "var(--text)", marginBottom: "16px", lineHeight: 0.95 }}>
-                  {timeline[activeYear].label}
-                </div>
-                <p style={{ fontSize: "15px", color: "var(--muted)", lineHeight: 1.8, fontWeight: 300, maxWidth: "480px" }}>
-                  {timeline[activeYear].body}
-                </p>
-              </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+              {timeline.map((item, i) => (
+                <TimelineRow key={i} item={item} index={i} last={i === timeline.length - 1} />
+              ))}
             </div>
           </div>
         </div>
+
         <style>{`
-          @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
-          @media(max-width:768px){ div[style*="grid-template-columns: 280px"] { grid-template-columns:1fr!important; } }
+          @keyframes fadeInLeft { from { opacity:0; transform:translateX(-16px); } to { opacity:1; transform:translateX(0); } }
+          @media(max-width:768px){ .timeline-row { flex-direction:column!important; } .timeline-year-col { width:auto!important; margin-bottom:8px; } }
         `}</style>
       </section>
+
 
       {/* ── VALUES ── */}
       <section style={{ padding: "100px 64px", maxWidth: "1100px", margin: "0 auto" }}>
