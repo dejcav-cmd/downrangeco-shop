@@ -951,6 +951,13 @@ function OpsTab({ adminKey }: { adminKey: string }) {
           <button onClick={runSync} disabled={trigger} style={{...mono(10),background:S.goldDim,border:`1px solid ${S.goldBorder}`,color:S.gold,padding:"8px 16px",cursor:"pointer"}}>
             {trigger?"Syncing...":"⟳ Force Product Sync"}
           </button>
+          <button onClick={async()=>{
+            const r=await fetch("/api/ops/test-sms",{method:"POST",headers:{"x-admin-key":adminKey,"Content-Type":"application/json"},body:"{}"});
+            const d=await r.json();
+            alert(d.sent?"✅ SMS sent to "+d.config.to_number:"❌ SMS failed. from_set:"+d.config.from_set+" to_set:"+d.config.to_set);
+          }} style={{...mono(10),background:"rgba(42,106,58,0.15)",border:"1px solid rgba(42,106,58,0.4)",color:S.greenText,padding:"8px 14px",cursor:"pointer"}}>
+            📱 Test SMS
+          </button>
           <button onClick={load} style={{...mono(10),background:"transparent",border:`1px solid ${S.border}`,color:S.muted,padding:"8px 14px",cursor:"pointer"}}>Refresh</button>
         </div>
       </div>
