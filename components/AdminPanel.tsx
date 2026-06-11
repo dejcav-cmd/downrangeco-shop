@@ -236,6 +236,7 @@ function StorefrontTab({adminKey,showToast}:{adminKey:string;showToast:(m:string
   const [loading,  setLoading] = useState(true);
   const [saving,   setSaving]  = useState(false);
   const [activeTab,setActiveTab] = useState<"slides"|"upload">("slides");
+  const [images,   setImages]  = useState<{path:string;filename:string;size:string}[]>([]);
 
   const BLANK_SLIDE = {
     id:`slide-${Date.now()}`, image:"/hero.jpg",
@@ -247,9 +248,12 @@ function StorefrontTab({adminKey,showToast}:{adminKey:string;showToast:(m:string
   const load = useCallback(async()=>{
     setLoading(true);
     try {
-      const r = await fetch("/api/hero",{headers:{"x-admin-key":adminKey},cache:"no-store"});
-      const d = await r.json();
-      setSlides(d.slides ?? []);
+      const [hr, ir] = await Promise.all([
+        fetch("/api/hero",{headers:{"x-admin-key":adminKey},cache:"no-store"}).then(r=>r.json()),
+        fetch("/api/admin/images",{headers:{"x-admin-key":adminKey},cache:"no-store"}).then(r=>r.json()).catch(()=>({images:[]})),
+      ]);
+      setSlides(hr.slides ?? []);
+      setImages(ir.images ?? []);
     } catch {}
     setLoading(false);
   },[adminKey]);
@@ -322,9 +326,26 @@ function StorefrontTab({adminKey,showToast}:{adminKey:string;showToast:(m:string
         {/* Left: form */}
         <div style={{display:"flex",flexDirection:"column",gap:14}}>
           <SideCard title="Hero Image">
-            <div style={{...mono(8),color:S.muted,marginBottom:6}}>Current: {editing.image}</div>
-            <input value={editing.image} onChange={e=>setEditing((s:any)=>({...s,image:e.target.value}))} style={iStyle} placeholder="/hero.jpg" />
-            <div style={{...mono(8),color:S.muted,marginTop:6}}>Upload new images in the Upload tab, then reference the filename here (e.g. /hero-2.jpg)</div>
+            {/* Thumbnail preview */}
+            {editing.image && (
+              <div style={{width:"100%",height:110,backgroundImage:`url('${editing.image}')`,backgroundSize:"cover",backgroundPosition:"center",marginBottom:10,border:`1px solid ${S.border}`,position:"relative"}}>
+                <div style={{position:"absolute",bottom:0,left:0,right:0,background:"rgba(0,0,0,0.6)",padding:"4px 8px",...mono(8),color:"#fff"}}>{editing.image}</div>
+              </div>
+            )}
+            {/* Dropdown */}
+            <div style={{...mono(8),color:S.muted,marginBottom:4}}>Select image:</div>
+            <select
+              value={editing.image}
+              onChange={e=>setEditing((s:any)=>({...s,image:e.target.value}))}
+              style={{...iStyle,cursor:"pointer",paddingRight:8}}>
+              {images.length===0 && <option value="/hero.jpg">/hero.jpg (default)</option>}
+              {images.map(img=>(
+                <option key={img.path} value={img.path}>{img.filename} — {img.size}</option>
+              ))}
+            </select>
+            <div style={{...mono(8),color:S.muted,marginTop:6}}>
+              Need a new image? Switch to the <b style={{color:S.gold}}>⬆ Upload Image</b> tab, upload it, then come back and it will appear here.
+            </div>
           </SideCard>
           <SideCard title="Eyebrow Text">
             <input value={editing.eyebrow} onChange={e=>setEditing((s:any)=>({...s,eyebrow:e.target.value}))} style={iStyle} placeholder="Built for the Field — Summer 2026"/>
@@ -450,7 +471,7 @@ function StorefrontTab({adminKey,showToast}:{adminKey:string;showToast:(m:string
       )}
 
       {activeTab==="upload" && (
-        <HeroUploadTab adminKey={adminKey} showToast={showToast}/>
+        <HeroUploadTab adminKey={adminKey} showToast={showToast} setImages={setImages}/>
       )}
     </div>
   );
@@ -978,7 +999,7 @@ function PagesTab({adminKey,showToast}:any){
 
 
 // ── Hero image upload tab ──────────────────────────────────────────────
-function HeroUploadTab({adminKey,showToast}:{adminKey:string;showToast:(m:string,t?:"ok"|"err")=>void}){
+function HeroUploadTab({adminKey,showToast,setImages}:{adminKey:string;showToast:(m:string,t?:"ok"|"err")=>void;setImages:(imgs:any[])=>void}){
   const [file,      setFile]    = useState<File|null>(null);
   const [filename,  setFilename] = useState("hero-2.jpg");
   const [uploading, setUploading]= useState(false);
@@ -1014,6 +1035,8 @@ function HeroUploadTab({adminKey,showToast}:{adminKey:string;showToast:(m:string
       setUploaded(d.path ?? `/${filename}`);
       setFile(null); setPreview(null);
       showToast(`✓ Uploaded as ${d.path} — Vercel redeploying (~60s)`);
+      // Reload image list so dropdown in slide editor shows the new image
+      fetch("/api/admin/images",{headers:{"x-admin-key":adminKey},cache:"no-store"}).then(r=>r.json()).then(d=>{ if(d.images) setImages(d.images); }).catch(()=>{});
     } catch(e:any){ showToast(e.message,"err"); }
     finally{ setUploading(false); }
   };
