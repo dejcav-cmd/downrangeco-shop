@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from "react";
 import { useTheme } from "@/context/ThemeContext";
 import { useCart } from "@/context/CartContext";
 import DottedSurface from "@/components/DottedSurface";
+import ThemeToggle from "@/components/ThemeToggle";
+import SearchBar from "@/components/SearchBar";
 
 // ── Shop nav — same visual structure as portal, shop-specific links ──
 const NAV = [
@@ -127,36 +129,27 @@ export default function Masthead() {
             </div>
           </div>
 
-          {/* Right — theme toggle + cart */}
+          {/* Right — exact portal layout: account+cart top row, search bar bottom row */}
           <div className="masthead-dateline" style={{ position:"absolute", right:0, top:"50%", transform:"translateY(-50%)", display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6 }}>
+            {/* Row 1: Account + Cart — mirrors portal's Social Icons row */}
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-              {/* Theme toggle — exact portal style */}
-              <button onClick={toggle} title={theme === "dark" ? "Light mode" : "Dark mode"}
-                style={{ background:"transparent", border:"1px solid #2A2F38", color:"#9CA3AF", width:32, height:32, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.15s" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "#C8922A"; (e.currentTarget as HTMLElement).style.color = "#C8922A"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "#2A2F38"; (e.currentTarget as HTMLElement).style.color = "#9CA3AF"; }}>
-                {theme === "dark"
-                  ? <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="currentColor" strokeWidth="1.3"/><line x1="8" y1="1" x2="8" y2="2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><line x1="8" y1="13.5" x2="8" y2="15" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><line x1="1" y1="8" x2="2.5" y2="8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><line x1="13.5" y1="8" x2="15" y2="8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><line x1="3.1" y1="3.1" x2="4.2" y2="4.2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><line x1="11.8" y1="11.8" x2="12.9" y2="12.9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><line x1="12.9" y1="3.1" x2="11.8" y2="4.2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><line x1="4.2" y1="11.8" x2="3.1" y2="12.9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
-                  : <svg width="13" height="13" viewBox="0 0 15 15" fill="none"><path d="M12.5 10a6 6 0 0 1-7-7 6 6 0 1 0 7 7z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                }
-              </button>
-              {/* Account */}
               <a href="https://shopify.com/83728892116/account" target="_blank" rel="noopener noreferrer"
-                style={{ display:"flex", alignItems:"center", gap:5, color:"#9CA3AF", fontFamily:"'IBM Plex Mono',monospace", fontSize:"10px", letterSpacing:"0.1em", textDecoration:"none", transition:"color 0.15s" }}
-                onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "#C8922A"}
-                onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "#9CA3AF"}>
-                <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.2"/><path d="M1.5 11.5c0-2.485 2.239-4.5 5-4.5s5 2.015 5 4.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
+                style={{ display:"flex", alignItems:"center", gap:5, background:"none", border:"1px solid #1F2428", color:"#9CA3AF", fontFamily:"'IBM Plex Mono',monospace", fontSize:"10px", letterSpacing:"0.08em", textDecoration:"none", padding:"4px 10px", transition:"all 0.15s" }}
+                onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor="#C8922A"; el.style.color="#C8922A"; }}
+                onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor="#1F2428"; el.style.color="#9CA3AF"; }}>
+                <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.2"/><path d="M1.5 11.5c0-2.485 2.239-4.5 5-4.5s5 2.015 5 4.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
                 ACCOUNT
               </a>
+              <button onClick={() => setCartOpen(true)}
+                style={{ display:"flex", alignItems:"center", gap:5, background:"rgba(200,146,42,0.1)", border:"1px solid rgba(200,146,42,0.35)", color:"#C8922A", fontFamily:"'Barlow Condensed',sans-serif", fontSize:"12px", fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", padding:"4px 12px", cursor:"pointer", transition:"background 0.15s" }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "rgba(200,146,42,0.22)"}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "rgba(200,146,42,0.1)"}>
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M1 1h2l1.5 7h7l1-5H4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="6" cy="12" r="1" fill="currentColor"/><circle cx="11" cy="12" r="1" fill="currentColor"/></svg>
+                {qty > 0 ? `Cart (${qty})` : "Cart"}
+              </button>
             </div>
-            {/* Cart */}
-            <button onClick={() => setCartOpen(true)}
-              style={{ display:"flex", alignItems:"center", gap:6, background:"rgba(200,146,42,0.1)", border:"1px solid rgba(200,146,42,0.28)", color:"#C8922A", fontFamily:"'Barlow Condensed',sans-serif", fontSize:"13px", fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", padding:"4px 14px", cursor:"pointer", transition:"all 0.15s" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(200,146,42,0.22)"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(200,146,42,0.1)"; }}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1h2l1.5 7h7l1-5H4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="6" cy="12" r="1" fill="currentColor"/><circle cx="11" cy="12" r="1" fill="currentColor"/></svg>
-              Cart {qty > 0 && <span style={{ background:"#C8922A", color:"#09090B", borderRadius:"50%", width:17, height:17, fontSize:10, fontWeight:700, display:"inline-flex", alignItems:"center", justifyContent:"center" }}>{qty}</span>}
-            </button>
+            {/* Row 2: Search bar — mirrors portal's GlobalSearchBar row */}
+            <SearchBar />
           </div>
         </div>
 
@@ -191,7 +184,8 @@ export default function Masthead() {
             })}
           </ul>
           {/* SHOP ALL button — portal's FEEDBACK button equivalent */}
-          <div style={{ padding:"0 12px", display:"flex", alignItems:"center", borderLeft:"1px solid #1F2428" }}>
+          <div style={{ padding:"0 12px", display:"flex", alignItems:"center", gap:10, borderLeft:"1px solid #1F2428" }}>
+            <ThemeToggle />
             <a href="/products"
               style={{ background:"#C8922A", color:"#09090B", fontFamily:"'Barlow Condensed',sans-serif", fontSize:"13px", fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", padding:"6px 16px", textDecoration:"none", whiteSpace:"nowrap", display:"block" }}
               onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#E5A83A"}
