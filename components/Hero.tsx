@@ -22,7 +22,7 @@ const DEFAULT_SLIDES: HeroSlide[] = [
   },
 ];
 
-const INTERVAL   = 6000;  // 6s per slide
+const INTERVAL   = 8000;  // 8s per slide
 const FADE_MS    = 700;   // crossfade duration
 
 export default function Hero() {
@@ -103,7 +103,7 @@ export default function Hero() {
 
   return (
     <section
-      style={{ position:"relative", minHeight:580, display:"flex", alignItems:"flex-end", overflow:"hidden", background:"#09090B" }}
+      style={{ position:"relative", minHeight:580, display:"flex", alignItems:"center", overflow:"hidden", background:"#09090B" }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -154,7 +154,7 @@ export default function Hero() {
 
       {/* ── Slide content — fades with slide ── */}
       <div style={{
-        position:"relative", zIndex:4, padding:"0 48px 60px", maxWidth:700,
+        position:"relative", zIndex:4, padding:"0 48px", maxWidth:700,
         transition:`opacity ${FADE_MS}ms ease`, opacity: fading ? 0 : 1,
       }}>
         <h1 style={{ fontFamily:"var(--font-bebas)", fontSize:"clamp(64px,10vw,100px)", lineHeight:0.88, letterSpacing:"0.03em", color:"#F0EDE8", marginBottom:22 }}>

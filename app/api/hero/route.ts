@@ -57,6 +57,16 @@ export const DEFAULT_SLIDES: HeroSlide[] = [
     cta_secondary: "Read Our Stance",
     overlay_opacity: 88, active: true, position: 2,
   },
+  {
+    id: "slide-4", image: "/hero.jpg",
+    eyebrow: "Honor. Service. Brotherhood.",
+    title_line1: "MILITARY", title_line2: "& VETERAN", title_line3: "PROUD.",
+    accent_word: "VETERAN",
+    subtitle: "Designs built for those who served and those who still carry the mission. American-made, American-worn.",
+    cta_primary: "Shop Military / Vet", cta_primary_url: "/collections/military-vet",
+    cta_secondary: "Our Story",
+    overlay_opacity: 86, active: true, position: 3,
+  },
 ];
 
 async function kv(path: string, body?: any) {
