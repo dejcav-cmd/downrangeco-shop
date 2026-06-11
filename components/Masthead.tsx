@@ -120,7 +120,7 @@ export default function Masthead() {
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
               <a href="https://downrangeco.com" target="_blank" rel="noopener noreferrer"
                 style={{ display:"inline-flex", alignItems:"center", gap:4, background:"rgba(200,146,42,.12)", color:"#C8922A", fontFamily:"'Barlow Condensed',sans-serif", fontSize:"10px", fontWeight:700, letterSpacing:"0.12em", padding:"3px 10px", textDecoration:"none", border:"1px solid rgba(200,146,42,.3)" }}>
-                📡 PORTAL
+                📡 NEWS PORTAL
               </a>
               <span style={{ background:"#C8922A", color:"#09090B", fontFamily:"'Barlow Condensed',sans-serif", fontSize:"10px", fontWeight:700, letterSpacing:"0.15em", padding:"3px 10px" }}>
                 APPAREL
