@@ -128,7 +128,7 @@ export default function AdminPanel() {
       {toast && <Toast msg={toast.msg} type={toast.type}/>}
 
       {/* ── Sidebar ── */}
-      <aside style={{ width:collapsed?52:210, background:S.sidebar, borderRight:`1px solid ${S.border}`, display:"flex", flexDirection:"column", flexShrink:0, transition:"width 0.22s ease", overflow:"hidden" }}>
+      <aside style={{ width:collapsed?52:210, background:S.sidebar, borderRight:`1px solid ${S.border}`, display:"flex", flexDirection:"column", flexShrink:0, transition:"width 0.22s ease", overflow:"hidden", minHeight:"100vh" }}>
         {/* Logo + collapse */}
         <div style={{ padding:collapsed?"14px 0":"16px 16px 12px", display:"flex", alignItems:"center", justifyContent:collapsed?"center":"space-between", borderBottom:`1px solid ${S.border}`, flexShrink:0 }}>
           {!collapsed && (
@@ -143,7 +143,7 @@ export default function AdminPanel() {
         </div>
 
         {/* Nav */}
-        <nav style={{ flex:1, paddingTop:8, overflowY:"auto" }}>
+        <nav style={{ flex:1, paddingTop:8, overflowY:"auto", minHeight:0 }}>
           {TABS.map(t=>{
             const active = tab===t.id;
             return (
