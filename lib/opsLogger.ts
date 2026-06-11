@@ -101,6 +101,9 @@ export async function sendSMSAlert(message: string): Promise<{
     const authUser  = apiKey ?? sid;
     const authPass  = apiSecret ?? token;
 
+    const prefix = "DownRange-Shop: ";
+    const fullMessage = message.startsWith(prefix) ? message : prefix + message;
+
     const res = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
       {
@@ -109,7 +112,7 @@ export async function sendSMSAlert(message: string): Promise<{
           Authorization: `Basic ${Buffer.from(`${authUser}:${authPass}`).toString("base64")}`,
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: new URLSearchParams({ To: to, From: from, Body: message }).toString(),
+        body: new URLSearchParams({ To: to, From: from, Body: fullMessage }).toString(),
       }
     );
 
