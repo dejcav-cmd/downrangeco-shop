@@ -3,96 +3,114 @@ import { sendSMSAlert, writeLog } from "@/lib/opsLogger";
 export const dynamic = "force-dynamic";
 const ADMIN_KEY = process.env.ADMIN_KEY ?? "drco-admin-2026";
 
-// GET — status page (works in browser)
+function html(body: string, status = 200) {
+  return new NextResponse(
+    `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>SMS Diagnostic - Down Range Co.</title>
+    <style>*{box-sizing:border-box}body{font:14px/1.6 monospace;padding:32px;background:#09090B;color:#E5E5E5;max-width:640px}h2{font-family:sans-serif;color:#C8922A;letter-spacing:0.08em;margin:0 0 24px}table{width:100%;border-collapse:collapse;margin-bottom:24px}td{padding:8px 12px 8px 0;border-bottom:1px solid #1F2428}td:first-child{color:#9CA3AF;width:220px}.ok{color:#6adb8a}.bad{color:#e08080}.warn{color:#e0a830}button{background:#C8922A;color:#09090B;border:none;padding:12px 28px;font:700 13px monospace;letter-spacing:0.1em;cursor:pointer;text-transform:uppercase}button:hover{background:#E5A83A}a{color:#C8922A}hr{border:none;border-top:1px solid #1F2428;margin:24px 0}ol{color:#9CA3AF;line-height:2}li a{color:#C8922A}</style>
+    </head><body>${body}</body></html>`,
+    { status, headers: { "Content-Type": "text/html; charset=utf-8" } }
+  );
+}
+
 export async function GET(req: NextRequest) {
   const key = req.nextUrl.searchParams.get("key") ?? req.headers.get("x-admin-key");
   if (key !== ADMIN_KEY) {
-    return new NextResponse(
-      `<html><body style="font:14px monospace;padding:32px;background:#09090B;color:#E5E5E5">
-        <h2 style="color:#C8922A">DownRange SMS Test</h2>
-        <p style="color:#e08080">❌ Unauthorized — append ?key=YOUR_ADMIN_KEY to the URL</p>
-      </body></html>`, { status: 401, headers: { "Content-Type": "text/html" } }
-    );
+    return html(`<h2>SMS Diagnostic</h2><p class="bad">UNAUTHORIZED -- add ?key=YOUR_ADMIN_KEY to the URL</p><p style="color:#6B7280">Example: /api/ops/test-sms?key=drco-admin-2026</p>`, 401);
   }
 
   const sid   = process.env.TWILIO_ACCOUNT_SID;
   const token = process.env.TWILIO_AUTH_TOKEN;
   const from  = process.env.TWILIO_FROM_NUMBER;
   const to    = process.env.ALERT_PHONE_NUMBER;
+  const apiKey = process.env.TWILIO_API_KEY;
+  const apiSec = process.env.TWILIO_API_SECRET;
 
-  const configOk = !!(sid && token && from && to);
+  const row = (k: string, v: string, ok: boolean) =>
+    `<tr><td>${k}</td><td class="${ok ? "ok" : "bad"}">${v}</td></tr>`;
 
-  return new NextResponse(
-    `<html><head><meta charset="utf-8"><title>SMS Test — Down Range Co.</title></head>
-    <body style="font:14px monospace;padding:32px;background:#09090B;color:#E5E5E5;max-width:600px">
-      <h2 style="color:#C8922A;font-family:sans-serif;letter-spacing:0.08em">📱 SMS DIAGNOSTIC</h2>
-      <table style="border-collapse:collapse;width:100%;margin-bottom:24px">
-        ${[
-          ["TWILIO_ACCOUNT_SID",    sid  ? `✓ ${sid.slice(0,8)}…`  : "❌ NOT SET"],
-          ["TWILIO_AUTH_TOKEN",     token? `✓ ${token.slice(0,6)}…` : "❌ NOT SET"],
-          ["TWILIO_FROM_NUMBER",    from ?? "❌ NOT SET"],
-          ["ALERT_PHONE_NUMBER",    to   ?? "❌ NOT SET"],
-        ].map(([k,v]) => `<tr>
-          <td style="padding:6px 12px 6px 0;color:#9CA3AF;border-bottom:1px solid #1F2428">${k}</td>
-          <td style="padding:6px 0;color:${(v as string).startsWith("✓") ? "#6adb8a" : "#e08080"};border-bottom:1px solid #1F2428">${v}</td>
-        </tr>`).join("")}
-      </table>
-      ${configOk ? `
-        <form method="POST" action="/api/ops/test-sms?key=${key}">
-          <button type="submit" style="background:#C8922A;color:#09090B;border:none;padding:12px 28px;font:700 13px monospace;letter-spacing:0.12em;cursor:pointer;text-transform:uppercase">
-            🚀 Send Test SMS Now
-          </button>
-        </form>
-        <p style="color:#6B7280;margin-top:12px;font-size:12px">
-          Will send to ${to} from ${from}<br>
-          Note: Toll-free numbers (+1877) require Twilio Toll-Free Verification.<br>
-          If SMS fails with code 30034, verify at console.twilio.com → Phone Numbers → Manage → your number → Regulatory Compliance.
-        </p>
-      ` : `<p style="color:#e08080">⚠️ Configure all Twilio env vars in Vercel Settings first.</p>`}
-    </body></html>`,
-    { headers: { "Content-Type": "text/html" } }
-  );
+  return html(`
+    <h2>SMS DIAGNOSTIC</h2>
+    <table>
+      ${row("TWILIO_ACCOUNT_SID",  sid   ? sid.slice(0,10)+"..." : "NOT SET", !!sid)}
+      ${row("TWILIO_AUTH_TOKEN",   token ? token.slice(0,6)+"..." : "NOT SET", !!token)}
+      ${row("TWILIO_FROM_NUMBER",  from  ?? "NOT SET", !!from)}
+      ${row("ALERT_PHONE_NUMBER",  to    ?? "NOT SET", !!to)}
+      ${row("TWILIO_API_KEY",      apiKey ? apiKey.slice(0,10)+"..." : "not set (optional)", true)}
+      ${row("TWILIO_API_SECRET",   apiSec ? "set" : "not set (optional)", true)}
+    </table>
+    ${sid && token && from && to ? `
+      <form method="POST" action="/api/ops/test-sms?key=${key}">
+        <button type="submit">SEND TEST SMS NOW</button>
+      </form>
+      <p style="color:#6B7280;margin-top:12px;font-size:12px">
+        Sends to: ${to}<br>
+        Sends from: ${from}<br>
+        Note: Toll-free numbers (+1877/+1888 etc) require Twilio Toll-Free Verification.
+        If you see error code 30034, see the fix below.
+      </p>
+      <hr>
+      <h3 style="color:#e0a830;font-family:sans-serif">If SMS fails with code 30034 (toll-free unverified)</h3>
+      <p style="color:#9CA3AF"><b>Option A - Verify toll-free (free, 1-3 business days):</b></p>
+      <ol>
+        <li>Go to <a href="https://console.twilio.com" target="_blank">console.twilio.com</a></li>
+        <li>Phone Numbers &rarr; Manage &rarr; Active Numbers</li>
+        <li>Click ${from}</li>
+        <li>Find "Toll-Free Verification" section</li>
+        <li>Submit the form and wait for approval</li>
+      </ol>
+      <p style="color:#9CA3AF"><b>Option B - Buy a local number (~$1.15/mo, works instantly):</b></p>
+      <ol>
+        <li>Twilio console &rarr; Buy a Number &rarr; search area code 206</li>
+        <li>Buy a local US number</li>
+        <li>Update TWILIO_FROM_NUMBER in Vercel env vars</li>
+        <li>Redeploy &rarr; SMS works immediately</li>
+      </ol>
+    ` : `<p class="bad">Configure all TWILIO_* env vars in Vercel Settings first, then redeploy.</p>`}
+  `);
 }
 
-// POST — actually send the SMS (used by browser form AND admin dashboard button)
 export async function POST(req: NextRequest) {
-  const key = req.nextUrl.searchParams.get("key")
-    ?? req.headers.get("x-admin-key")
-    ?? (await req.json().catch(() => ({}))).key;
+  const url_key = req.nextUrl.searchParams.get("key");
+  let body_key = "";
+  let isJson = false;
 
+  const contentType = req.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    isJson = true;
+    const b = await req.json().catch(() => ({}));
+    body_key = b.key ?? "";
+  }
+
+  const key = url_key ?? req.headers.get("x-admin-key") ?? body_key;
   if (key !== ADMIN_KEY) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   await writeLog({ level: "info", job: "sms-test", message: "Manual SMS test triggered" });
 
   const result = await sendSMSAlert(
-    `🧪 DownRange Shop SMS Test\n${new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" })} PT\nAll systems operational.`
+    `DownRange Shop SMS Test\n${new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" })} PT\nAll systems operational.`
   );
 
-  // If browser form POST, redirect back to GET with result
+  // Browser form POST → redirect to GET with result shown
   const accept = req.headers.get("accept") ?? "";
-  if (accept.includes("text/html")) {
-    const status = result.sent ? "✅ SMS sent! SID: " + result.twilioSid : "❌ Failed: " + (result.errorMessage ?? "unknown") + " (code " + (result.errorCode ?? "?") + ")";
-    return new NextResponse(
-      `<html><body style="font:14px monospace;padding:32px;background:#09090B;color:#E5E5E5">
-        <h2 style="color:#C8922A">Result</h2>
-        <p style="color:${result.sent?"#6adb8a":"#e08080"};font-size:16px">${status}</p>
-        <a href="/api/ops/test-sms?key=${key}" style="color:#C8922A">← Back to diagnostic</a>
-        ${!result.sent && result.errorCode === 30034 ? `
-          <hr style="border-color:#1F2428;margin:20px 0">
-          <h3 style="color:#e0a830">Code 30034 — Toll-Free Verification Required</h3>
-          <p style="color:#9CA3AF">Your +18777804236 number needs verification before it can send SMS.</p>
-          <p><a href="https://console.twilio.com" target="_blank" style="color:#C8922A">Open Twilio Console →</a></p>
-          <ol style="color:#9CA3AF;line-height:2">
-            <li>Phone Numbers → Manage → Active Numbers</li>
-            <li>Click +18777804236</li>
-            <li>Scroll to "Toll-Free Verification" section</li>
-            <li>Submit verification form (1-3 business days)</li>
-            <li>OR: Buy a local number (~$1.15/mo) for instant use</li>
-          </ol>
-        ` : ""}
-      </body></html>`,
-      { headers: { "Content-Type": "text/html" } }
-    );
+  if (!isJson || accept.includes("text/html")) {
+    const statusMsg = result.sent
+      ? `<p class="ok">SMS SENT! SID: ${result.twilioSid} &mdash; Status: ${result.twilioStatus}</p>`
+      : `<p class="bad">SMS FAILED: ${result.errorMessage ?? "unknown"} (code: ${result.errorCode ?? "?"})</p>
+         ${result.errorCode === 30034 ? `<p class="warn">Code 30034 = Toll-Free Verification required. See fix options above.</p>` : ""}
+         ${result.errorCode === 21608 ? `<p class="warn">Code 21608 = Unverified number. Go to Twilio console &rarr; Verified Caller IDs &rarr; add +12066016076</p>` : ""}
+         ${result.httpStatus === 401 ? `<p class="warn">401 = Check your TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN in Vercel env vars.</p>` : ""}`;
+
+    return html(`
+      <h2>SMS TEST RESULT</h2>
+      ${statusMsg}
+      <hr>
+      <a href="/api/ops/test-sms?key=${key}">&larr; Back to diagnostic</a>
+      <hr>
+      <p style="color:#6B7280;font-size:12px">
+        Full details are in the Operations log in your admin dashboard.<br>
+        Admin &rarr; Operations tab &rarr; filter by "sms"
+      </p>
+    `);
   }
 
   return NextResponse.json({
@@ -107,6 +125,7 @@ export async function POST(req: NextRequest) {
       token_set:  !!process.env.TWILIO_AUTH_TOKEN,
       from_value: process.env.TWILIO_FROM_NUMBER ?? "not set",
       to_value:   process.env.ALERT_PHONE_NUMBER  ?? "not set",
+      api_key_set: !!process.env.TWILIO_API_KEY,
     },
   });
 }
