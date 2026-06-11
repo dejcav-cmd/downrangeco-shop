@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { loginRatelimit, checkRateLimit } from "@/lib/ratelimit";
 import { loginCustomer, logoutCustomer, getCustomer, updateCustomer, createCustomer, sendMagicLink } from "@/lib/customer";
 import { cookies } from "next/headers";
 
@@ -31,6 +32,9 @@ export async function POST(req: NextRequest) {
 
   switch (action) {
     case "login": {
+      const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+      const { allowed } = await checkRateLimit(loginRatelimit, `login:${ip}`);
+      if (!allowed) return NextResponse.json({ error: "Too many attempts. Try again in a minute." }, { status: 429 });
       const { email, password } = body;
       const result = await loginCustomer(email, password);
       if (!result.token) return NextResponse.json({ error: result.error ?? "Invalid credentials" }, { status: 401 });

@@ -183,7 +183,7 @@ export default function ProductDetail({ product }: { product: ShopifyProduct }) 
                   onClick={() => setActiveImg(i)}
                   style={{ width: "68px", height: "68px", border: `2px solid ${i === activeImg ? "var(--gold)" : "rgba(255,255,255,0.06)"}`, overflow: "hidden", cursor: "pointer", background: "var(--bg3)", flexShrink: 0, transition: "border-color 0.15s" }}
                 >
-                  <img src={img.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <img src={img.url} alt={`${product.title} — Down Range Co.`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 </div>
               ))}
             </div>

@@ -17,12 +17,12 @@ export default function Nav() {
   return (
     <nav style={{
       position: "sticky", top: 0, zIndex: 100,
-      background: "var(--nav-bg)", backdropFilter: "blur(14px)",
-      borderBottom: "1px solid var(--border)",
+      background: "rgba(9,9,11,0.97)", backdropFilter: "blur(14px)",
+      borderBottom: "1px solid #1F2428",
       display: "flex", flexDirection: "column",
     }}>
       {/* ── Row 1: Centered logo ── */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "10px 28px 8px", borderBottom: "1px solid var(--border)", position: "relative" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "10px 28px 8px", borderBottom: "1px solid #1F2428", position: "relative" }}>
         <a href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
           <img
             src="/logo.png"
@@ -33,7 +33,7 @@ export default function Nav() {
       </div>
 
       {/* ── Row 2: Centered pill nav + right actions ── */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "8px 28px", position: "relative", height: "50px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "8px 28px", position: "relative", height: "50px", background: "#0D0F13" }}>
 
         {/* Centered pills */}
         <div style={{ display: "flex", gap: "6px", alignItems: "center" }} className="nav-links">
@@ -81,7 +81,7 @@ function PillLink({ href, primary, children }: { href: string; primary: boolean;
   );
   return (
     <a href={href} className="pill-link pill-ghost"
-      style={{ fontFamily: "var(--font-mono)", fontSize: "11px", fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", background: "transparent", border: "1px solid var(--border)", padding: "7px 16px", textDecoration: "none", display: "inline-block" }}>
+      style={{ fontFamily: "var(--font-mono)", fontSize: "11px", fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", background: "transparent", border: "1px solid #2A2F38", padding: "7px 16px", textDecoration: "none", display: "inline-block" }}>
       {children}
     </a>
   );
@@ -90,7 +90,7 @@ function PillLink({ href, primary, children }: { href: string; primary: boolean;
 function OurStoryLink() {
   return (
     <a href="/about" className="our-story-link"
-      style={{ fontFamily: "var(--font-mono)", fontSize: "11px", fontWeight: 500, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(200,146,42,0.75)", textDecoration: "none", paddingRight: "12px", borderRight: "1px solid var(--border)" }}>
+      style={{ fontFamily: "var(--font-mono)", fontSize: "11px", fontWeight: 500, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(200,146,42,0.8)", textDecoration: "none", paddingRight: "12px", borderRight: "1px solid #2A2F38" }}>
       Our Story
     </a>
   );
@@ -100,7 +100,7 @@ function ThemeToggle({ theme, toggle }: { theme: string; toggle: () => void }) {
   const isDark = theme === "dark";
   return (
     <button onClick={toggle} className="theme-btn" aria-label="Toggle theme"
-      style={{ width: 34, height: 34, background: "transparent", border: "1px solid var(--border)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", flexShrink: 0 }}>
+      style={{ width: 34, height: 34, background: "transparent", border: "1px solid #2A2F38", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", flexShrink: 0 }}>
       {isDark ? (
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
           <circle cx="8" cy="8" r="3" stroke="currentColor" strokeWidth="1.3"/>
@@ -125,7 +125,7 @@ function ThemeToggle({ theme, toggle }: { theme: string; toggle: () => void }) {
 function AccountBtn() {
   return (
     <a href="https://shopify.com/83728892116/account" target="_blank" rel="noopener noreferrer" className="acct-btn"
-      style={{ display: "flex", alignItems: "center", gap: "6px", background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontFamily: "var(--font-mono)", fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", padding: "7px 13px", textDecoration: "none", flexShrink: 0 }}>
+      style={{ display: "flex", alignItems: "center", gap: "6px", background: "transparent", border: "1px solid #2A2F38", color: "var(--muted)", fontFamily: "var(--font-mono)", fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", padding: "7px 13px", textDecoration: "none", flexShrink: 0 }}>
       <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.2"/><path d="M1.5 11.5c0-2.485 2.239-4.5 5-4.5s5 2.015 5 4.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
       Account
     </a>
@@ -135,7 +135,7 @@ function AccountBtn() {
 function CartBtn({ qty, onOpen }: { qty: number; onOpen: () => void }) {
   return (
     <button onClick={onOpen} className="cart-btn"
-      style={{ background: "var(--gold-dim)", border: "1px solid var(--gold-border)", color: "var(--gold)", fontFamily: "var(--font-mono)", fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", padding: "7px 15px", cursor: "pointer", display: "flex", alignItems: "center", gap: "7px", flexShrink: 0 }}>
+      style={{ background: "rgba(200,146,42,0.10)", border: "1px solid rgba(200,146,42,0.28)", color: "var(--gold)", fontFamily: "var(--font-mono)", fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", padding: "7px 15px", cursor: "pointer", display: "flex", alignItems: "center", gap: "7px", flexShrink: 0 }}>
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1h2l1.5 7h7l1-5H4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="6" cy="12" r="1" fill="currentColor"/><circle cx="11" cy="12" r="1" fill="currentColor"/></svg>
       Cart
       {qty > 0 && (

@@ -6,6 +6,35 @@ import CartDrawer from "@/components/CartDrawer";
 import AnnouncementBar from "@/components/AnnouncementBar";
 import { ThemeProvider } from "@/context/ThemeContext";
 
+
+const SITE_SCHEMA = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": "https://shop.downrangeco.com/#organization",
+    "name": "Down Range Co.",
+    "url": "https://shop.downrangeco.com",
+    "logo": { "@type": "ImageObject", "url": "https://shop.downrangeco.com/logo.png", "width": 2170, "height": 263 },
+    "description": "Premium print-on-demand apparel for hunters, shooters, and 2A patriots. Washington-owned, American-printed.",
+    "foundingDate": "2026",
+    "areaServed": "United States",
+    "sameAs": ["https://downrangeco.com"],
+    "contactPoint": { "@type": "ContactPoint", "email": "support@downrangeco.com", "contactType": "customer service" }
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": "https://shop.downrangeco.com/#website",
+    "url": "https://shop.downrangeco.com",
+    "name": "Down Range Co.",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": { "@type": "EntryPoint", "urlTemplate": "https://shop.downrangeco.com/products?search={search_term_string}" },
+      "query-input": "required name=search_term_string"
+    }
+  }
+];
+
 export const metadata: Metadata = {
   title: "Down Range Co. — Gear for Hunters, Shooters & 2A Patriots",
   description: "Premium print-on-demand apparel for hunters, shooters, and those who stand for the Second Amendment.",

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { adminRatelimit, checkRateLimit } from "@/lib/ratelimit";
 
 const SHOPIFY_DOMAIN  = process.env.SHOPIFY_STORE_DOMAIN!;
 const CLIENT_ID       = process.env.SHOPIFY_ADMIN_CLIENT_ID!;
@@ -65,6 +66,9 @@ function auth(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+  const { allowed } = await checkRateLimit(adminRatelimit, `admin-get:${ip}`);
+  if (!allowed) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
   if (!auth(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const action = req.nextUrl.searchParams.get("action") ?? "products";
@@ -105,6 +109,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+  const { allowed } = await checkRateLimit(adminRatelimit, `admin-post:${ip}`);
+  if (!allowed) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
   if (!auth(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();

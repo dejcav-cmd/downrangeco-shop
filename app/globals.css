@@ -1,57 +1,101 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── EXACT NEWS PORTAL COLOR TOKENS ─────────────────────────── */
 :root {
-  --font-bebas: 'Bebas Neue', sans-serif;
-  --font-mono: 'IBM Plex Mono', monospace;
-  --font-sans: 'IBM Plex Sans', sans-serif;
-}
+  --font-bebas:  'Bebas Neue', sans-serif;
+  --font-mono:   'IBM Plex Mono', monospace;
+  --font-sans:   'IBM Plex Sans', sans-serif;
+  --font-cond:   'Barlow Condensed', sans-serif;
 
-/* ── DARK THEME (default) ──────────────────────────────────────────── */
-[data-theme="dark"], :root {
   --bg:          #09090B;
-  --bg2:         #111113;
-  --bg3:         #1A1A1D;
-  --card:        #141416;
-  --card-border: rgba(255,255,255,0.07);
+  --bg2:         #111318;
+  --bg3:         #16191F;
+  --bg4:         #1C2028;
   --gold:        #C8922A;
-  --gold-light:  #E0A840;
-  --gold-dim:    rgba(200,146,42,0.12);
-  --gold-border: rgba(200,146,42,0.28);
-  --text:        #F0EDE8;
-  --muted:       #C8C3BC;
-  --muted2:      #9A958E;
-  --border:      rgba(255,255,255,0.07);
-  --nav-bg:      rgba(9,9,11,0.96);
-  --footer-bg:   #0D0D0F;
+  --gold-light:  #E5A83A;
+  --gold-dim:    #8A6320;
+  --red:         #B91C1C;
+  --red-bright:  #EF4444;
+  --text:        #E5E5E5;
+  --text-muted:  #9CA3AF;
+  --text-dim:    #6B7280;
+  --border:      #1F2428;
+  --border-mid:  #2A2F38;
+  --green:       #16A34A;
+  --orange:      #D97706;
+  --blue:        #3B82F6;
+  --purple:      #8B5CF6;
+
+  /* shop-specific aliases */
+  --muted:       #9CA3AF;
+  --card:        #111318;
+  --card-border: #1F2428;
+  --nav-bg:      rgba(9,9,11,0.97);
+  --footer-bg:   #0D0F13;
+
+  /* gold helpers */
+  --gold-dim-bg:    rgba(200,146,42,0.10);
+  --gold-border:    rgba(200,146,42,0.28);
 }
 
-/* ── LIGHT THEME ───────────────────────────────────────────────────── */
+/* ── LIGHT THEME — exact portal values ───────────────────────── */
 [data-theme="light"] {
-  --bg:          #F5F3EF;
-  --bg2:         #EDEBE6;
-  --bg3:         #E4E1DB;
-  --card:        #FAFAF8;
-  --card-border: rgba(0,0,0,0.08);
-  --gold:        #A8720E;
-  --gold-light:  #C08820;
-  --gold-dim:    rgba(168,114,14,0.1);
-  --gold-border: rgba(168,114,14,0.3);
-  --text:        #1A1812;
-  --muted:       #4A4640;
-  --muted2:      #7A766E;
-  --border:      rgba(0,0,0,0.08);
-  --nav-bg:      rgba(245,243,239,0.96);
-  --footer-bg:   #E4E1DB;
+  --bg:         #F5F4F0;
+  --bg2:        #FFFFFF;
+  --bg3:        #EDECEA;
+  --bg4:        #E2E0DC;
+  --gold:       #A0721A;
+  --gold-light: #C8922A;
+  --gold-dim:   #7A5510;
+  --red:        #991B1B;
+  --red-bright: #DC2626;
+  --text:       #111318;
+  --text-muted: #374151;
+  --text-dim:   #6B7280;
+  --border:     #D4D0C8;
+  --border-mid: #C0BAB0;
+  --green:      #15803D;
+  --blue:       #1D4ED8;
+  --purple:     #7C3AED;
+  --muted:      #374151;
+  --card:       #FFFFFF;
+  --card-border:#D4D0C8;
+  --nav-bg:     rgba(9,9,11,0.97);  /* nav always dark — matches portal */
+  --footer-bg:  #1C2028;
+  --gold-dim-bg:    rgba(160,114,26,0.10);
+  --gold-border:    rgba(160,114,26,0.28);
 }
 
-*, *::before, *::after { box-sizing: border-box; }
+/* Nav + footer always dark regardless of theme (portal rule) */
+[data-theme="light"] nav { background: rgba(9,9,11,0.97) !important; }
+[data-theme="light"] footer { background: #0D0F13 !important; }
+
 html { scroll-behavior: smooth; }
 
 body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  margin: 0; padding: 0;
-  transition: background 0.25s ease, color 0.25s ease;
+  overflow-x: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold-dim); }
+
+a { color: inherit; text-decoration: none; }
+img { max-width: 100%; }
+button { cursor: pointer; }
+
+/* Smooth theme transitions */
+body, nav, footer, div, a, span, p, h1, h2, h3, h4, button, input, textarea, select {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { uploadRatelimit, checkRateLimit } from "@/lib/ratelimit";
 
 const ADMIN_KEY  = process.env.ADMIN_KEY ?? "drco-admin-2026";
 const GH_TOKEN   = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN ?? "";
@@ -8,6 +9,9 @@ const GH_BRANCH  = "main";
 const GH_API     = `https://api.github.com/repos/${GH_REPO}/contents/${GH_PATH}`;
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+  const { allowed } = await checkRateLimit(uploadRatelimit, `upload:${ip}`);
+  if (!allowed) return NextResponse.json({ error: "Upload rate limit exceeded" }, { status: 429 });
   const key = req.headers.get("x-admin-key");
   if (key !== ADMIN_KEY) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
