@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminRatelimit, checkRateLimit } from "@/lib/ratelimit";
+import { writeLog } from "@/lib/opsLogger";
 
 const SHOPIFY_DOMAIN  = process.env.SHOPIFY_STORE_DOMAIN!;
 const CLIENT_ID       = process.env.SHOPIFY_ADMIN_CLIENT_ID!;
@@ -119,25 +120,25 @@ export async function POST(req: NextRequest) {
 
   try {
     switch (action) {
-      case "update_product": {
+      case "update_product": { await writeLog({ level:"info", job:"admin-api", message:`Product updated`, detail:`ID: ${id}` });
         const data = await shopifyAdmin(`/products/${id}.json`, {
           method: "PUT",
           body: JSON.stringify({ product: payload }),
         });
         return NextResponse.json(data.product);
       }
-      case "delete_product": {
+      case "delete_product": { await writeLog({ level:"warn", job:"admin-api", message:`Product DELETED`, detail:`ID: ${id}` });
         await shopifyAdmin(`/products/${id}.json`, { method: "DELETE" });
         return NextResponse.json({ ok: true });
       }
-      case "publish_product": {
+      case "publish_product": { await writeLog({ level:"info", job:"admin-api", message:`Product published`, detail:`ID: ${id}` });
         const data = await shopifyAdmin(`/products/${id}.json`, {
           method: "PUT",
           body: JSON.stringify({ product: { id, status: "active" } }),
         });
         return NextResponse.json(data.product);
       }
-      case "unpublish_product": {
+      case "unpublish_product": { await writeLog({ level:"info", job:"admin-api", message:`Product set to draft`, detail:`ID: ${id}` });
         const data = await shopifyAdmin(`/products/${id}.json`, {
           method: "PUT",
           body: JSON.stringify({ product: { id, status: "draft" } }),

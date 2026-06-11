@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uploadRatelimit, checkRateLimit } from "@/lib/ratelimit";
+import { writeLog } from "@/lib/opsLogger";
 
 const ADMIN_KEY  = process.env.ADMIN_KEY ?? "drco-admin-2026";
 const GH_TOKEN   = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN ?? "";
@@ -54,9 +55,11 @@ export async function POST(req: NextRequest) {
 
     if (!commitRes.ok) {
       const err = await commitRes.json();
+      await writeLog({ level:"error", job:"hero-upload", message:"Hero image upload FAILED", detail:err.message });
       throw new Error(`GitHub commit failed: ${err.message}`);
     }
 
+    await writeLog({ level:"ok", job:"hero-upload", message:"Hero image committed to GitHub", detail:`File: ${file.name} · ${(file.size/1024).toFixed(0)}KB → auto-redeploy triggered` });
     return NextResponse.json({
       ok: true,
       message: "Hero image committed to GitHub. Vercel will redeploy in ~60 seconds.",

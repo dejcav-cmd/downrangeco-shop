@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { writeLog } from "@/lib/opsLogger";
 import { createCart, addToCart, removeFromCart, updateCartLine, getCart } from "@/lib/shopify";
 
 export async function GET(req: NextRequest) {

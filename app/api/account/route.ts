@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { loginRatelimit, checkRateLimit } from "@/lib/ratelimit";
+import { writeLog } from "@/lib/opsLogger";
 import { loginCustomer, logoutCustomer, getCustomer, updateCustomer, createCustomer, sendMagicLink } from "@/lib/customer";
 import { cookies } from "next/headers";
 
@@ -37,25 +38,34 @@ export async function POST(req: NextRequest) {
       if (!allowed) return NextResponse.json({ error: "Too many attempts. Try again in a minute." }, { status: 429 });
       const { email, password } = body;
       const result = await loginCustomer(email, password);
-      if (!result.token) return NextResponse.json({ error: result.error ?? "Invalid credentials" }, { status: 401 });
+      if (!result.token) {
+        await writeLog({ level:"warn", job:"auth", message:"Login failed", detail:`Email: ${body.email} · ${result.error}` });
+        await writeLog({ level:"warn", job:"auth", message:"Login failed", detail:`${body.email}` });
+        return NextResponse.json({ error: result.error ?? "Invalid credentials" }, { status: 401 });
+      }
+      await writeLog({ level:"ok", job:"auth", message:"Customer login", detail:body.email });
       const res = NextResponse.json({ ok: true });
       res.cookies.set(COOKIE, result.token, COOKIE_OPTS);
       return res;
     }
-    case "register": {
+    case "register": await writeLog({ level:"info", job:"auth", message:"New registration", detail:body.email }); /* falls through */
+    case "register_exec": {
+      await writeLog({ level:"info", job:"auth", message:"New customer registration", detail:body.email });
       const { firstName, lastName, email, password } = body;
       const result = await createCustomer({ firstName, lastName, email, password });
       if (!result.customer) return NextResponse.json({ error: result.error }, { status: 400 });
       // Auto-login after register
       const loginResult = await loginCustomer(email, password);
       if (loginResult.token) {
-        const res = NextResponse.json({ ok: true, customer: result.customer });
+        await writeLog({ level:"ok", job:"auth", message:"Customer login", detail:`${body.email}` });
+      const res = NextResponse.json({ ok: true, customer: result.customer });
         res.cookies.set(COOKIE, loginResult.token, COOKIE_OPTS);
         return res;
       }
       return NextResponse.json({ ok: true });
     }
-    case "logout": {
+    case "logout": { await writeLog({ level:"info", job:"auth", message:"Customer logout" });
+      await writeLog({ level:"info", job:"auth", message:"Customer logout" });
       const token = jar.get(COOKIE)?.value;
       if (token) await logoutCustomer(token).catch(() => {});
       const res = NextResponse.json({ ok: true });

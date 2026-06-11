@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { writeLog } from "@/lib/opsLogger";
 
 const ADMIN_KEY = process.env.ADMIN_KEY ?? "drco-admin-2026";
 const KV_URL = process.env.UPSTASH_REDIS_REST_URL;

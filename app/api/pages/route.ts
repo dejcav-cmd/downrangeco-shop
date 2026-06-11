@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { writeLog } from "@/lib/opsLogger";
 
 const ADMIN_KEY    = process.env.ADMIN_KEY ?? "drco-admin-2026";
 const KV_URL       = process.env.UPSTASH_REDIS_REST_URL;
@@ -43,5 +44,6 @@ export async function POST(req: NextRequest) {
   const { slug, content } = body;
   if (!slug || !content) return NextResponse.json({ error: "Missing slug or content" }, { status: 400 });
   await kvSet(pageKey(slug), content);
+  await writeLog({ level:"info", job:"pages", message:`Page content updated`, detail:`/pages/${slug}` });
   return NextResponse.json({ ok: true });
 }
