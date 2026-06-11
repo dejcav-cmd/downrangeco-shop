@@ -95,12 +95,18 @@ export async function sendSMSAlert(message: string): Promise<{
   let httpStatus = 0;
 
   try {
+    // Support both Account SID+AuthToken AND API Key+Secret auth
+    const apiKey    = process.env.TWILIO_API_KEY;    // SK... (optional)
+    const apiSecret = process.env.TWILIO_API_SECRET; // client secret (optional)
+    const authUser  = apiKey ?? sid;
+    const authPass  = apiSecret ?? token;
+
     const res = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
       {
         method: "POST",
         headers: {
-          Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString("base64")}`,
+          Authorization: `Basic ${Buffer.from(`${authUser}:${authPass}`).toString("base64")}`,
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams({ To: to, From: from, Body: message }).toString(),
