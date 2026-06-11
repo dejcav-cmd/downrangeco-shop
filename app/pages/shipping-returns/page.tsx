@@ -1,131 +1,103 @@
+"use client";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
-import PolicyLayout, { Section, Table, Note } from "@/components/PolicyLayout";
-
-export const metadata = { title: "Shipping & Returns — Down Range Co." };
 
 export default function ShippingReturnsPage() {
   return (
     <>
       <Nav />
       <main style={{ background: "var(--bg)", minHeight: "80vh" }}>
-        <PolicyLayout
-          eyebrow="// Know before you order"
-          title={"SHIPPING &\nRETURNS"}
-          subtitle="All products are printed on demand and fulfilled by Printify's network of US-based print providers. We don't hold inventory — your order is made specifically for you."
-        >
-          <Section title="How It Works">
-            <p style={{ marginBottom: 14 }}>Every product in our store is printed to order. When you place an order:</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+        <div style={{ maxWidth: 920, margin: "0 auto", padding: "52px 32px 80px" }}>
+          <button onClick={() => window.history.back()}
+            style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "var(--muted)", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", padding: "7px 12px", cursor: "pointer", marginBottom: 32 }}>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M7 2L3 6l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            Back
+          </button>
+
+          <div style={{ marginBottom: 52 }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--gold)", marginBottom: 12 }}>// Know before you order</div>
+            <h1 style={{ fontFamily: "var(--font-bebas)", fontSize: "clamp(40px,7vw,72px)", letterSpacing: "0.03em", lineHeight: 0.92, margin: "0 0 16px" }}>
+              SHIPPING &<br /><span style={{ color: "var(--gold)" }}>RETURNS</span>
+            </h1>
+            <p style={{ fontSize: 14, color: "var(--muted)", maxWidth: 560, lineHeight: 1.75, fontWeight: 300 }}>
+              Every item is printed on demand — made specifically for your order by Printify's US print network. No inventory. No waste. Here's what to expect.
+            </p>
+          </div>
+
+          {/* Order Journey Timeline */}
+          <div style={{ marginBottom: 52 }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--gold)", marginBottom: 24 }}>// Your order journey</div>
+            <div style={{ display: "flex", gap: 0, position: "relative" }}>
+              <div style={{ position: "absolute", top: 20, left: "12%", right: "12%", height: 1, background: "linear-gradient(to right, var(--gold), rgba(200,146,42,0.2))", zIndex: 0 }} />
               {[
-                "Your order is sent to a Printify print provider (typically US-based)",
-                "The provider prints, quality-checks, and packages your item",
-                "Your order ships directly from the print facility to your door",
-                "You receive a tracking number via email once shipped",
-              ].map((step, i) => (
-                <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <span style={{ fontFamily: "var(--font-bebas)", fontSize: 18, color: "var(--gold)", lineHeight: 1.2, flexShrink: 0, minWidth: 20 }}>{i + 1}</span>
-                  <span style={{ fontSize: 13, lineHeight: 1.6 }}>{step}</span>
+                { icon: "◎", step: "01", label: "Order Placed",  desc: "Payment confirmed, enters queue" },
+                { icon: "◈", step: "02", label: "Printing",      desc: "2–7 business days" },
+                { icon: "◉", step: "03", label: "Shipped",       desc: "Tracking email sent" },
+                { icon: "✓", step: "04", label: "Delivered",     desc: "3–5 US days transit" },
+              ].map(s => (
+                <div key={s.step} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", position: "relative", zIndex: 1, padding: "0 4px" }}>
+                  <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--bg3)", border: "2px solid var(--gold)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12, color: "var(--gold)", fontSize: 15, flexShrink: 0 }}>
+                    {s.icon}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--gold)", marginBottom: 3 }}>{s.step}</div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text)", marginBottom: 5 }}>{s.label}</div>
+                  <div style={{ fontSize: 11, color: "var(--muted)", lineHeight: 1.5 }}>{s.desc}</div>
                 </div>
               ))}
             </div>
-            <Note>Because products are made to order, we cannot cancel or modify orders once they enter production (typically within 24 hours of placement).</Note>
-          </Section>
+          </div>
 
-          <Section title="Production Time">
-            <p style={{ marginBottom: 12 }}>Before shipping, your order needs to be printed. This is separate from shipping time.</p>
-            <Table
-              headers={["Type", "Production Time", "Notes"]}
-              rows={[
-                ["Standard",        "2–7 business days",   "Most orders ship within 3–4 days"],
-                ["Holiday / Peak",  "Up to 10 business days", "Q4 and holiday seasons"],
-                ["Express",         "1–2 business days",   "Select products only — see product page"],
-              ]}
-            />
-            <Note>Production time starts when your order is submitted and payment clears. Orders placed on weekends or holidays begin production on the next business day.</Note>
-          </Section>
-
-          <Section title="US Shipping Rates & Times">
-            <Table
-              headers={["Method", "Transit Time", "Cost"]}
-              rows={[
-                ["Standard",   "3–5 business days",  "Calculated at checkout"],
-                ["Priority",   "2–3 business days",  "Calculated at checkout"],
-                ["Express",    "1–2 business days",  "Calculated at checkout"],
-              ]}
-            />
-            <p style={{ marginTop: 12 }}>Free standard shipping on US orders over $60.</p>
-          </Section>
-
-          <Section title="International Shipping">
-            <Table
-              headers={["Region", "Estimated Transit", "Notes"]}
-              rows={[
-                ["Canada",         "5–10 business days",   "Customs may cause delays"],
-                ["UK / Europe",    "5–14 business days",   "VAT may apply at delivery"],
-                ["Australia / NZ", "10–20 business days",  "Local fulfillment where available"],
-                ["Rest of World",  "10–30 business days",  "Varies by carrier and destination"],
-              ]}
-            />
-            <Note>International customers are responsible for any customs duties, taxes, or import fees charged by their country. These are not included in our prices and will be collected at delivery.</Note>
-          </Section>
-
-          <Section title="Tracking Your Order">
-            <p style={{ marginBottom: 10 }}>Once your order ships, you'll receive an email with a tracking number. You can track directly:</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {[
-                ["Your Account", "Log in at shop.downrangeco.com/account — tracking shows in your order history"],
-                ["Email", "Check your order confirmation email for the tracking link"],
-                ["Carrier site", "Use your tracking number directly at USPS, UPS, DHL, or your carrier's website"],
-              ].map(([label, desc]) => (
-                <div key={label as string} style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 12, padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--gold)", paddingTop: 1 }}>{label}</span>
-                  <span style={{ fontSize: 12, lineHeight: 1.6 }}>{desc}</span>
-                </div>
-              ))}
+          {/* Info grid */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>
+            <InfoCard title="Production Time" items={[["Standard","2–7 business days"],["Holiday / Peak","Up to 10 business days"],["Express","1–2 business days (select)"]]} />
+            <InfoCard title="US Shipping" items={[["Standard","3–5 days · Free over $60"],["Priority","2–3 days"],["Express","1–2 days"]]} />
+            <InfoCard title="International" items={[["Canada","5–10 business days"],["UK / Europe","5–14 business days"],["Australia","10–20 business days"],["Rest of World","10–30 business days"]]} note="Customs duties are customer's responsibility" />
+            <div style={{ background: "var(--card)", border: "1px solid rgba(255,255,255,0.06)", padding: 24 }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--gold)", marginBottom: 16 }}>Returns Policy</div>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.1em", color: "#e08080", marginBottom: 8 }}>Not accepted:</div>
+                {["Wrong size selected","Change of mind","Buyer's remorse"].map(i=>(
+                  <div key={i} style={{ display:"flex",gap:8,marginBottom:4,fontSize:12,color:"var(--muted)" }}><span style={{color:"#e08080"}}>×</span>{i}</div>
+                ))}
+              </div>
+              <div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--gold)", marginBottom: 8 }}>We replace / refund:</div>
+                {["Damaged or defective","Wrong item received","Lost in transit (30+ days)"].map(i=>(
+                  <div key={i} style={{ display:"flex",gap:8,marginBottom:4,fontSize:12,color:"var(--muted)" }}><span style={{color:"var(--gold)"}}>✓</span>{i}</div>
+                ))}
+              </div>
             </div>
-          </Section>
+          </div>
 
-          <Section title="Returns & Exchanges">
-            <p style={{ marginBottom: 14 }}>Because every item is printed specifically for you, we <strong style={{ color: "var(--text)" }}>do not accept returns or exchanges</strong> for buyer's remorse, wrong size selected, or change of mind. Please review our sizing guide carefully before ordering.</p>
-
-            <p style={{ marginBottom: 12 }}>We <strong style={{ color: "var(--gold)" }}>will replace or refund</strong> your order if:</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
-              {[
-                "The item arrives damaged or defective",
-                "There is a print quality issue (misalignment, fading, incorrect placement)",
-                "You received the wrong item or size",
-                "The package was lost in transit (after 30 days for US, 45 days international)",
-              ].map((item, i) => (
-                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                  <span style={{ color: "var(--gold)", fontSize: 14, lineHeight: 1.4, flexShrink: 0 }}>✓</span>
-                  <span style={{ fontSize: 13, lineHeight: 1.6 }}>{item}</span>
-                </div>
-              ))}
+          <div style={{ background: "rgba(200,146,42,0.06)", border: "1px solid rgba(200,146,42,0.2)", padding: "24px 28px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+            <div>
+              <div style={{ fontFamily: "var(--font-bebas)", fontSize: 22, letterSpacing: "0.06em", marginBottom: 4 }}>GOT A PROBLEM WITH YOUR ORDER?</div>
+              <div style={{ fontSize: 13, color: "var(--muted)", fontWeight: 300 }}>Contact us within 30 days with your order number and a photo.</div>
             </div>
+            <a href="/pages/contact" style={{ background: "var(--gold)", color: "#09090B", fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", padding: "11px 22px", textDecoration: "none" }}>
+              Contact Us →
+            </a>
+          </div>
 
-            <Note>To request a replacement or refund, contact us within 30 days of delivery with your order number and a clear photo of the issue. We'll make it right.</Note>
-          </Section>
-
-          <Section title="Damaged or Defective Items">
-            <p style={{ marginBottom: 12 }}>If your order arrives damaged or has a quality issue, please contact us within <strong style={{ color: "var(--text)" }}>30 days of delivery</strong> with:</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {["Your order number", "A photo of the item showing the issue", "A brief description of the problem"].map((item, i) => (
-                <div key={i} style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  <span style={{ color: "var(--gold)", fontSize: 12, flexShrink: 0 }}>—</span>
-                  <span style={{ fontSize: 13 }}>{item}</span>
-                </div>
-              ))}
-            </div>
-            <p style={{ marginTop: 12 }}>Contact us at: <a href="mailto:support@downrangeco.com" style={{ color: "var(--gold)" }}>support@downrangeco.com</a> or via our <a href="/pages/contact" style={{ color: "var(--gold)" }}>contact page</a>.</p>
-          </Section>
-
-          <Section title="Order Cancellations">
-            <p>Orders can be cancelled within <strong style={{ color: "var(--text)" }}>24 hours of placement</strong> if they have not yet entered production. After that, cancellations are not possible as the item is already being made. Contact us immediately at <a href="mailto:support@downrangeco.com" style={{ color: "var(--gold)" }}>support@downrangeco.com</a> if you need to cancel.</p>
-          </Section>
-        </PolicyLayout>
+          <style>{`@media(max-width:768px){div[style*="grid-template-columns: 1fr 1fr"]{grid-template-columns:1fr!important}}`}</style>
+        </div>
       </main>
       <Footer />
     </>
+  );
+}
+
+function InfoCard({ title, items, note }: { title: string; items: string[][]; note?: string }) {
+  return (
+    <div style={{ background: "var(--card)", border: "1px solid rgba(255,255,255,0.06)", padding: 24 }}>
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--gold)", marginBottom: 16 }}>{title}</div>
+      {items.map(([l,v]) => (
+        <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.04)", gap: 8 }}>
+          <span style={{ fontSize: 12, color: "var(--text)" }}>{l}</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--muted)", textAlign: "right" }}>{v}</span>
+        </div>
+      ))}
+      {note && <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", marginTop: 10 }}>{note}</div>}
+    </div>
   );
 }

@@ -11,8 +11,8 @@ export default function Footer() {
 
         {/* Brand */}
         <div>
-          <div style={{ fontFamily: "var(--font-bebas)", fontSize: "28px", letterSpacing: "0.1em", marginBottom: "10px" }}>
-            DOWN <span style={{ color: "var(--gold)" }}>RANGE</span> CO.
+          <div style={{ marginBottom: "12px" }}>
+            <img src="/logo.png" alt="Down Range Co." style={{ height: "44px", width: "auto", maxWidth: "240px", objectFit: "contain" }} />
           </div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.12em", color: "var(--muted)", textTransform: "uppercase", lineHeight: 1.8 }}>
             Gear for hunters, shooters &amp;<br />
