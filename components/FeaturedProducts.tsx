@@ -77,16 +77,19 @@ function ProductCard({ product }: { product: Product }) {
   const [hovered, setHovered] = useState(false);
 
   return (
-    <div
+    <a
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      href={`/products/${product.handle}`}
       style={{
+        display: "block",
         background: "var(--card)",
         border: `1px solid ${hovered ? "rgba(200,146,42,0.3)" : "rgba(255,255,255,0.06)"}`,
         transition: "border-color 0.2s, transform 0.15s",
         transform: hovered ? "translateY(-2px)" : "none",
         overflow: "hidden",
         cursor: "pointer",
+        textDecoration: "none",
       }}
     >
       {/* Image */}
@@ -141,6 +144,6 @@ function ProductCard({ product }: { product: Product }) {
           {product.price}
         </div>
       </div>
-    </div>
+    </a>
   );
 }
