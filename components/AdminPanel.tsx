@@ -1155,6 +1155,9 @@ function OpsTab({ adminKey }: { adminKey: string }) {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [testing,     setTesting]     = useState(false);
   const [testResult,  setTestResult]  = useState<any>(null);
+  const [webhooks,    setWebhooks]    = useState<any[]>([]);
+  const [wbRegistering, setWbReg]    = useState(false);
+  const [wbResult,    setWbResult]   = useState<any>(null);
   const timerRef = useRef<any>(null);
 
   const load = React.useCallback(async (silent=false) => {
@@ -1580,6 +1583,55 @@ function OpsTab({ adminKey }: { adminKey: string }) {
               <div style={{...mono(8),color:S.muted}}>{log.duration ? `${log.duration}ms` : "—"}</div>
             </div>
           ))}
+        </div>
+      </div>
+
+
+      {/* ── Shopify Webhooks ── */}
+      <div style={{marginTop:32,paddingTop:24,borderTop:`1px solid ${S.border}`}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+          <div>
+            <div style={{fontFamily:"var(--font-bebas)",fontSize:26,letterSpacing:"0.04em"}}>SHOPIFY <span style={{color:S.gold}}>WEBHOOKS</span></div>
+            <div style={{...mono(8),color:S.muted}}>Purchase alerts — new orders trigger an instant SMS to DJ</div>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={async()=>{const r=await fetch("/api/webhooks/register",{headers:{"x-admin-key":adminKey}}).then(r=>r.json()).catch(()=>({}));setWebhooks(r.webhooks??[]);}}
+              style={{...mono(9),background:"transparent",border:`1px solid ${S.border}`,color:S.muted,padding:"6px 12px",cursor:"pointer"}}>↻ Refresh</button>
+            <button onClick={async()=>{setWbReg(true);setWbResult(null);try{const r=await fetch("/api/webhooks/register",{method:"POST",headers:{"x-admin-key":adminKey}}).then(r=>r.json());setWbResult(r);if(r.ok){const lr=await fetch("/api/webhooks/register",{headers:{"x-admin-key":adminKey}}).then(r=>r.json()).catch(()=>({}));setWebhooks(lr.webhooks??[]);}}catch(e:any){setWbResult({error:e.message});}finally{setWbReg(false);}}}
+              disabled={wbRegistering} style={{...mono(9),background:S.gold,color:S.bg,padding:"6px 14px",border:"none",cursor:"pointer",fontWeight:700}}>
+              {wbRegistering?"Registering...":"⚡ Register Webhooks"}
+            </button>
+          </div>
+        </div>
+        {wbResult&&(
+          <div style={{marginBottom:12,padding:"10px 14px",background:wbResult.ok?S.greenDim:S.redDim,border:`1px solid ${wbResult.ok?"rgba(22,163,74,0.3)":"rgba(184,64,64,0.3)"}`}}>
+            {wbResult.ok
+              ? <><div style={{...mono(9),color:S.greenText}}>✓ {wbResult.results?.filter((r:any)=>r.ok).length}/{wbResult.results?.length} webhooks registered</div>
+                  <div style={{...mono(8),color:S.muted,marginTop:4}}>Next: copy Webhook Secret from Shopify Admin → Settings → Notifications → Webhooks, add to Vercel as SHOPIFY_WEBHOOK_SECRET, then redeploy.</div></>
+              : <div style={{...mono(9),color:"#e08080"}}>✗ {wbResult.error??JSON.stringify(wbResult)}</div>
+            }
+          </div>
+        )}
+        <div style={{background:S.bg3,border:`1px solid ${S.border}`,marginBottom:12}}>
+          {webhooks.length===0
+            ? <div style={{...mono(9),color:S.muted,padding:"16px",textAlign:"center"}}>No webhooks registered — click Register Webhooks above</div>
+            : webhooks.map((wh:any)=>(
+                <div key={wh.id} style={{display:"grid",gridTemplateColumns:"180px 1fr 60px",padding:"10px 14px",borderBottom:`1px solid ${S.border}`,alignItems:"center"}}>
+                  <div style={{...mono(9),color:S.gold}}>{wh.topic}</div>
+                  <div style={{...mono(8),color:S.muted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{wh.address}</div>
+                  <div style={{...mono(8),color:S.greenText,textAlign:"right"}}>● live</div>
+                </div>))
+          }
+        </div>
+        <div style={{background:"rgba(200,146,42,0.05)",border:`1px solid rgba(200,146,42,0.18)`,padding:"12px 14px"}}>
+          <div style={{...mono(8),color:S.gold,marginBottom:6}}>SMS alert triggers</div>
+          {[["orders/create","New purchase → order #, total, items, customer name + city"],
+            ["orders/cancelled","Cancelled → reason"],
+            ["refunds/create","Refund → amount"]].map(([t,d])=>(
+            <div key={t} style={{display:"flex",gap:12,marginBottom:4}}>
+              <span style={{...mono(8),color:S.gold,flexShrink:0,minWidth:140}}>{t}</span>
+              <span style={{...mono(8),color:S.muted}}>{d}</span>
+            </div>))}
         </div>
       </div>
 
