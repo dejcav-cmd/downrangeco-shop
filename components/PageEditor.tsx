@@ -85,7 +85,7 @@ const PAGE_DEFAULTS: Record<string, PageContent> = {
       { id:"s1", heading:"The Right to Keep & Bear Arms", body:"Not just for hunting. Not just for sport. The Second Amendment was written as a check on tyranny. That's not paranoia — it's the plain reading of the text and the intent of the founders." },
       { id:"s2", heading:"Constitutional Carry", body:"Law-abiding citizens shouldn't need government permission to exercise a constitutional right. We support permitless carry nationwide and follow Washington's CPL laws until that day comes." },
       { id:"s3", heading:"Responsible Ownership", body:"Rights come with responsibility. Safe storage, proper training, knowing your target and what's beyond it. The best argument for gun ownership is a gun owner who handles firearms with discipline and respect." },
-      { id:"s4", heading:"The Brand", body:"Down Range Co. started because every hunting and shooting apparel brand either looked like a big-box store logo or was so tactical it was unwearable off the range.\n\nWashington State. One person. 400+ designs and growing." },
+      { id:"s4", heading:"The Brand", body:"Down Range Co. started because every hunting and shooting apparel brand either looked like a big-box store logo or was so tactical it was unwearable off the range.\n\nWashington State. One person. Hundreds of designs and growing." },
     ],
   },
 };

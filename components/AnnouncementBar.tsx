@@ -2,7 +2,7 @@
 
 const ANNOUNCEMENTS = [
   "Free shipping on US orders over $60",
-  "400+ designs — hunters, shooters & 2A patriots",
+  "Hundreds of designs — hunters, shooters & 2A patriots",
   "Washington-owned · American-printed",
   "New drops every week — check back often",
   "Printify-fulfilled · Ships in 2–7 business days",

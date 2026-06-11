@@ -1,9 +1,11 @@
 "use client";
 import { useCart } from "@/context/CartContext";
 import { useState } from "react";
+import { useTheme } from "@/context/ThemeContext";
 
 export default function Nav() {
   const { cart, setCartOpen } = useCart();
+  const { theme, toggle } = useTheme();
   const qty = cart?.totalQuantity ?? 0;
 
   const NAV_LINKS = [
@@ -42,6 +44,9 @@ export default function Nav() {
 
         {/* Account */}
         <AccountBtn />
+
+        {/* Theme toggle */}
+        <ThemeToggle theme={theme} toggle={toggle} />
 
         {/* Cart */}
         <button onClick={() => setCartOpen(true)}
@@ -107,5 +112,35 @@ function AccountBtn() {
       <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.2"/><path d="M1.5 11.5c0-2.485 2.239-4.5 5-4.5s5 2.015 5 4.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
       Account
     </a>
+  );
+}
+
+function ThemeToggle({ theme, toggle }: { theme: string; toggle: () => void }) {
+  const isDark = theme === "dark";
+  return (
+    <button onClick={toggle} aria-label="Toggle theme" title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, background: "transparent", border: "1px solid var(--border)", cursor: "pointer", transition: "all 0.2s", flexShrink: 0, color: "var(--muted)" }}
+      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--gold-border)"; (e.currentTarget as HTMLElement).style.color = "var(--gold)"; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLElement).style.color = "var(--muted)"; }}>
+      {isDark ? (
+        /* Sun */
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="3" stroke="currentColor" strokeWidth="1.3"/>
+          <line x1="8" y1="1" x2="8" y2="2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+          <line x1="8" y1="13.5" x2="8" y2="15" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+          <line x1="1" y1="8" x2="2.5" y2="8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+          <line x1="13.5" y1="8" x2="15" y2="8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+          <line x1="3.1" y1="3.1" x2="4.2" y2="4.2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+          <line x1="11.8" y1="11.8" x2="12.9" y2="12.9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+          <line x1="12.9" y1="3.1" x2="11.8" y2="4.2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+          <line x1="4.2" y1="11.8" x2="3.1" y2="12.9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+        </svg>
+      ) : (
+        /* Moon */
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+          <path d="M12.5 10a6 6 0 0 1-7-7 6 6 0 1 0 7 7z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )}
+    </button>
   );
 }

@@ -8,7 +8,7 @@ export default function Footer() {
   } as const;
 
   return (
-    <footer style={{ background: "var(--bg2)", borderTop: "1px solid rgba(255,255,255,0.06)", padding: "44px 32px 24px" }}>
+    <footer style={{ background: "var(--footer-bg)", borderTop: "1px solid rgba(255,255,255,0.06)", padding: "44px 32px 24px" }}>
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: "40px", marginBottom: "32px", maxWidth: "1200px", margin: "0 auto 32px" }}>
 
         {/* Brand */}

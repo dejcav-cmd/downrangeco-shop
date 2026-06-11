@@ -60,9 +60,9 @@ const timeline = [
   },
   {
     year: "May 2026",
-    label: "400+ Designs. One Vision.",
+    label: "Hundreds of Design Ideas. One Vision.",
     tag: "// The apparel launches",
-    body: "Working with Printify's US print network, the design library comes to life — rifle hunting at first light, bow season in the hardwoods, precision long-range, 2A patriot, waterfowl, military veteran. Every design made by someone who carries daily, hunts public land, and believes the Second Amendment is the one that protects all the others.",
+    body: "Working with Printify's US print network, the design library comes to life — rifle hunting at first light, bow season in the hardwoods, precision long-range, 2A patriot, waterfowl, military veteran. Every design made by someone who carries daily, hunts public land, and believes the Second Amendment is the one that protects all the others. Not a set number. Never finished. Growing every week.",
     accent: true,
   },
   {
@@ -187,7 +187,7 @@ export default function AboutContent() {
               "The mainstream media has never understood the firearms community. They cover it from the outside — with fear, with bias, or not at all. Legislative updates get buried. Court wins go unreported. Gear that matters never gets a fair look.",
               "So DJ Cavalcanti, a daily carrier and hunter based in Washington State, built downrangeco.com — a real-time intelligence portal covering everything that matters: legislation, court cases, gear, hunting seasons, and Second Amendment news. No agenda except the truth.",
               "Then readers started asking where to get gear that reflected the lifestyle. Not mass-market camo. Not corporate \"tactical\" branding. Something real. Something that looked like it came from someone who actually hunts, shoots, and carries.",
-              "That's how the apparel line started. 400+ designs — and counting — each one rooted in the same community that reads the portal every day."
+              "That's how the apparel line started. Hundreds of designs and counting — each one rooted in the same community that reads the portal every day. Not a catalog. A conversation."
             ].map((p, i) => (
               <p key={i} style={{ fontSize: "14px", color: i === 0 ? "var(--text)" : "var(--muted)", lineHeight: 1.75, fontWeight: i === 0 ? 400 : 300, margin: 0 }}>{p}</p>
             ))}
@@ -201,7 +201,7 @@ export default function AboutContent() {
               By the numbers
             </div>
             {[
-              { num: "400+", label: "Original designs" },
+              { num: "∞", label: "Design ideas" },
               { num: "2", label: "Platforms — news + apparel" },
               { num: "50", label: "States covered in CCW database" },
               { num: "1", label: "Daily carrier behind it all" },

@@ -1,6 +1,6 @@
 "use client";
 const stats = [
-  { num: "400+", label: "Designs" },
+  { num: "∞", label: "Design Ideas" },
   { num: "Free", label: "Shipping $60+" },
   { num: "USA", label: "Printed & Shipped" },
   { num: "2A", label: "Owned Business" },
