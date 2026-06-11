@@ -11,13 +11,20 @@
     {
       "path": "/api/ops/health?alert=1",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/ops/backup",
+      "schedule": "0 6 * * *"
     }
   ],
   "headers": [
     {
       "source": "/hero.jpg",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
       ]
     }
   ]
