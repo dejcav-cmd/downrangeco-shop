@@ -1,4 +1,4 @@
-import Nav from "@/components/Nav";
+import Masthead from "@/components/Masthead";
 import Hero from "@/components/Hero";
 import StatStrip from "@/components/StatStrip";
 import Categories from "@/components/Categories";
@@ -25,7 +25,7 @@ export default async function Home() {
 
   return (
     <>
-      <Nav />
+      <Masthead />
       <main>
         <Hero />
         <StatStrip />

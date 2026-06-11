@@ -1,5 +1,5 @@
 import { getCollection, getCategory, formatMoney } from "@/lib/shopify";
-import Nav from "@/components/Nav";
+import Masthead from "@/components/Masthead";
 import Footer from "@/components/Footer";
 import ProductGrid from "@/components/ProductGrid";
 import { notFound } from "next/navigation";
@@ -18,7 +18,7 @@ export default async function CollectionPage({ params }: { params: Promise<{ han
 
   return (
     <>
-      <Nav />
+      <Masthead />
       <main style={{ background: "var(--bg)", minHeight: "80vh" }}>
         <div style={{ padding: "40px 32px 0", maxWidth: "1200px", margin: "0 auto" }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--gold)", marginBottom: "6px" }}>// Collection</div>

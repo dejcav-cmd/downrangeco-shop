@@ -1,5 +1,5 @@
 import { getProduct } from "@/lib/shopify";
-import Nav from "@/components/Nav";
+import Masthead from "@/components/Masthead";
 import Footer from "@/components/Footer";
 import ProductDetail from "@/components/ProductDetail";
 import { notFound } from "next/navigation";
@@ -59,7 +59,7 @@ export default async function ProductPage({ params }: { params: Promise<{ handle
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <Nav />
+      <Masthead />
       <main style={{ background: "var(--bg)", minHeight: "80vh" }}>
         <ProductDetail product={product} />
       </main>

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import Nav from "@/components/Nav";
+import Masthead from "@/components/Masthead";
 import Footer from "@/components/Footer";
 import PolicyLayout, { Section } from "@/components/PolicyLayout";
 
@@ -35,7 +35,7 @@ export default function DynamicPage({ slug, defaults }: DynamicPageProps) {
 
   return (
     <>
-      <Nav />
+      <Masthead />
       <main style={{ background: "var(--bg)", minHeight: "80vh" }}>
         <PolicyLayout eyebrow={content.eyebrow} title={content.title} subtitle={content.subtitle}>
           {content.sections.map(s => (

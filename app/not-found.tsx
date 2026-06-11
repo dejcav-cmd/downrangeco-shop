@@ -1,10 +1,10 @@
-import Nav from "@/components/Nav";
+import Masthead from "@/components/Masthead";
 import Footer from "@/components/Footer";
 
 export default function NotFound() {
   return (
     <>
-      <Nav />
+      <Masthead />
       <main style={{ background: "var(--bg)", minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 32px" }}>
         <div style={{ textAlign: "center" }}>
           <div style={{ fontFamily: "var(--font-bebas)", fontSize: "160px", lineHeight: 1, color: "rgba(200,146,42,0.1)", letterSpacing: "0.04em", marginBottom: "-20px" }}>404</div>

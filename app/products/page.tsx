@@ -1,6 +1,6 @@
 import { getProducts, getCategory, formatMoney } from "@/lib/shopify";
 import ProductGrid from "@/components/ProductGrid";
-import Nav from "@/components/Nav";
+import Masthead from "@/components/Masthead";
 import Footer from "@/components/Footer";
 
 export const revalidate = 300;
@@ -30,7 +30,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <Nav />
+      <Masthead />
       <main style={{ minHeight: "80vh", background: "var(--bg)" }}>
         <div style={{ padding: "40px 32px 0", maxWidth: "1200px", margin: "0 auto" }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--gold)", marginBottom: "6px" }}>// Shop</div>

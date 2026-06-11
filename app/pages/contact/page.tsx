@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import Nav from "@/components/Nav";
+import Masthead from "@/components/Masthead";
 import Footer from "@/components/Footer";
 import PolicyLayout from "@/components/PolicyLayout";
 
@@ -16,7 +16,7 @@ export default function ContactPage() {
   };
   return (
     <>
-      <Nav />
+      <Masthead />
       <main style={{background:"var(--bg)",minHeight:"80vh"}}>
         <PolicyLayout eyebrow="// We read every message" title={"CONTACT\nUS."} subtitle="Questions about your order, sizing, or the brand. We respond within 1–2 business days.">
           <div style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:36}}>

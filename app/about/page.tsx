@@ -1,4 +1,4 @@
-import Nav from "@/components/Nav";
+import Masthead from "@/components/Masthead";
 import Footer from "@/components/Footer";
 import AboutContent from "@/components/AboutContent";
 
@@ -10,7 +10,7 @@ export const metadata = {
 export default function AboutPage() {
   return (
     <>
-      <Nav />
+      <Masthead />
       <main style={{ background: "var(--bg)" }}>
         <AboutContent />
       </main>
