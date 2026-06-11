@@ -450,20 +450,17 @@ function StorefrontTab({adminKey,showToast}:{adminKey:string;showToast:(m:string
 
       {activeTab==="slides" && (
         <div>
-          {/* Redis status */}
-      {kvReady===false && (
-        <div style={{marginBottom:16,background:"rgba(184,64,64,0.1)",border:"1px solid rgba(184,64,64,0.3)",padding:"10px 14px",display:"flex",alignItems:"center",gap:10}}>
-          <span style={{color:"#e08080",fontSize:16}}>⚠</span>
-          <div>
-            <div style={{...mono(9),color:"#e08080",marginBottom:2}}>Redis not configured — slides will NOT persist between sessions</div>
-            <div style={{...mono(8),color:S.muted}}>Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in Vercel Settings → Environment Variables, then redeploy.</div>
-          </div>
-        </div>
-      )}
-      {kvReady===true && (
-        <div style={{marginBottom:12,...mono(8),color:S.greenText}}>● Redis connected — slides persist</div>
-      )}
-      {loading && <LoadingBar/>}
+          {kvReady===false && (
+            <div style={{marginBottom:14,background:"rgba(184,64,64,0.08)",border:"1px solid rgba(184,64,64,0.3)",padding:"10px 14px",display:"flex",alignItems:"center",gap:10}}>
+              <span style={{color:"#e08080"}}>⚠</span>
+              <div>
+                <div style={{...mono(9),color:"#e08080",marginBottom:2}}>Redis not configured — slides reset on every redeploy</div>
+                <div style={{...mono(8),color:S.muted}}>Add UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN to Vercel env vars, then redeploy.</div>
+              </div>
+            </div>
+          )}
+          {kvReady===true && <div style={{...mono(8),color:S.greenText,marginBottom:10}}>● Redis connected — slides persist across deployments</div>}
+          {loading && <LoadingBar/>}
           {!loading && slides.length===0 && (
             <div style={{...mono(10),color:S.muted,padding:"40px 0",textAlign:"center"}}>No slides. Click + Add Slide to create one.</div>
           )}
@@ -542,19 +539,6 @@ function ProductsTab({apiFetch,apiPost,showToast}:any){
           style={{ ...iStyle, width:260 }}/>
       </div>
 
-      {/* Redis status */}
-      {kvReady===false && (
-        <div style={{marginBottom:16,background:"rgba(184,64,64,0.1)",border:"1px solid rgba(184,64,64,0.3)",padding:"10px 14px",display:"flex",alignItems:"center",gap:10}}>
-          <span style={{color:"#e08080",fontSize:16}}>⚠</span>
-          <div>
-            <div style={{...mono(9),color:"#e08080",marginBottom:2}}>Redis not configured — slides will NOT persist between sessions</div>
-            <div style={{...mono(8),color:S.muted}}>Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in Vercel Settings → Environment Variables, then redeploy.</div>
-          </div>
-        </div>
-      )}
-      {kvReady===true && (
-        <div style={{marginBottom:12,...mono(8),color:S.greenText}}>● Redis connected — slides persist</div>
-      )}
       {loading && <LoadingBar/>}
 
       <div style={{ border:`1px solid ${S.border}` }}>
@@ -911,19 +895,6 @@ function StoreInfoTab({apiFetch}:any){
       <div style={{ fontFamily:"var(--font-bebas)", fontSize:38, letterSpacing:"0.04em", marginBottom:24 }}>
         STORE <span style={{color:S.gold}}>INFO</span>
       </div>
-      {/* Redis status */}
-      {kvReady===false && (
-        <div style={{marginBottom:16,background:"rgba(184,64,64,0.1)",border:"1px solid rgba(184,64,64,0.3)",padding:"10px 14px",display:"flex",alignItems:"center",gap:10}}>
-          <span style={{color:"#e08080",fontSize:16}}>⚠</span>
-          <div>
-            <div style={{...mono(9),color:"#e08080",marginBottom:2}}>Redis not configured — slides will NOT persist between sessions</div>
-            <div style={{...mono(8),color:S.muted}}>Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in Vercel Settings → Environment Variables, then redeploy.</div>
-          </div>
-        </div>
-      )}
-      {kvReady===true && (
-        <div style={{marginBottom:12,...mono(8),color:S.greenText}}>● Redis connected — slides persist</div>
-      )}
       {loading && <LoadingBar/>}
       {err && (
         <div style={{ background:"rgba(184,64,64,0.1)", border:"1px solid rgba(184,64,64,0.3)", padding:"14px 18px", ...mono(11), color:"#e08080", marginBottom:16 }}>
