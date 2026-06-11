@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 
 const S = {
   bg:"#09090B", bg2:"#111113", bg3:"#1A1A1D", card:"#141416",
@@ -63,9 +63,9 @@ export default function AdminPanel() {
         {/* Logo */}
         <div style={{ padding: sidebarOpen ? "20px 20px 16px" : "20px 0 16px", display:"flex", alignItems:"center", justifyContent: sidebarOpen ? "space-between" : "center", borderBottom:`1px solid ${S.border}` }}>
           {sidebarOpen && (
-            <div>
-              <div style={{ fontFamily:"var(--font-bebas)", fontSize:18, letterSpacing:"0.1em", color:S.text, lineHeight:1 }}>DOWN <span style={{color:S.gold}}>RANGE</span></div>
-              <div style={{ ...mono(8), color:S.muted, marginTop:2 }}>Store Admin</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+              <img src="/logo.png" alt="Down Range Co." style={{ height:36, width:"auto", maxWidth:160, objectFit:"contain" }}/>
+              <div style={{ ...mono(8), color:S.muted }}>Store Admin</div>
             </div>
           )}
           <button onClick={()=>setSidebarOpen(o=>!o)} style={{ background:"transparent", border:`1px solid ${S.border}`, color:S.muted, width:28, height:28, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:12, transition:"all 0.15s" }}>
@@ -334,6 +334,8 @@ function StorefrontTab({adminKey,showToast}:{adminKey:string;showToast:(m:string
             </div>
             <div style={{ ...mono(8), color:S.muted, marginTop:4 }}>How dark the overlay on the hero image is (higher = darker)</div>
           </SideCard>
+
+          <HeroImageUpload adminKey={adminKey} showToast={showToast}/>
 
         </div>
 
@@ -752,12 +754,28 @@ function CollectionsTab({apiFetch}:any){
 // ══════════════════════════════════════════════════════════════════════
 function StoreInfoTab({apiFetch}:any){
   const [shop,setShop]=useState<any|null>(null);
-  useEffect(()=>{apiFetch({action:"shop"}).then(setShop).catch(()=>{});},[apiFetch]);
+  const [loading,setLoading]=useState(true);
+  const [err,setErr]=useState("");
+  useEffect(()=>{
+    setLoading(true); setErr("");
+    apiFetch({action:"shop"})
+      .then((d:any)=>setShop(d))
+      .catch((e:any)=>setErr(e.message))
+      .finally(()=>setLoading(false));
+  },[apiFetch]);
   return (
     <>
       <div style={{ fontFamily:"var(--font-bebas)", fontSize:38, letterSpacing:"0.04em", marginBottom:24 }}>
         STORE <span style={{color:S.gold}}>INFO</span>
       </div>
+      {loading && <LoadingBar/>}
+      {err && (
+        <div style={{ background:"rgba(184,64,64,0.1)", border:"1px solid rgba(184,64,64,0.3)", padding:"14px 18px", ...mono(11), color:"#e08080", marginBottom:16 }}>
+          {err.includes("401")||err.includes("token")
+            ? "Admin API not connected yet. Add SHOPIFY_ADMIN_CLIENT_ID and SHOPIFY_ADMIN_CLIENT_SECRET to Vercel env vars and redeploy."
+            : err}
+        </div>
+      )}
       {shop&&(
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
           <SideCard title="Store Details">
@@ -786,11 +804,46 @@ function StoreInfoTab({apiFetch}:any){
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────
+
+// ── Hero Image Upload ──────────────────────────────────────────────
+function HeroImageUpload({adminKey,showToast}:{adminKey:string;showToast:(m:string,t?:"ok"|"err")=>void}){
+  const [uploading,setUploading]=useState(false);
+  const [preview,setPreview]=useState<string|null>(null);
+  const fileRef=useRef<HTMLInputElement>(null);
+  const handleFile=async(e:React.ChangeEvent<HTMLInputElement>)=>{
+    const file=e.target.files?.[0]; if(!file) return;
+    setPreview(URL.createObjectURL(file)); setUploading(true);
+    try{
+      const fd=new FormData(); fd.append("file",file);
+      const res=await fetch("/api/upload/hero",{method:"POST",headers:{"x-admin-key":adminKey},body:fd});
+      const data=await res.json();
+      if(data.error) throw new Error(data.error);
+      showToast("Hero image uploaded! ✓");
+    }catch(err:any){showToast((err as any).message,"err");setPreview(null);}
+    finally{setUploading(false);}
+  };
+  return (
+    <SideCard title="Hero Background Image">
+      <div style={{marginBottom:10,fontSize:12,color:S.muted,lineHeight:1.6}}>Replace the background photo. 1920×800px recommended, JPG/PNG, max 10MB.</div>
+      <div style={{height:110,overflow:"hidden",background:S.bg3,border:`1px solid ${S.border}`,marginBottom:10,position:"relative"}}>
+        <img src={preview??"/hero.jpg"} alt="Hero" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+        {preview&&<div style={{position:"absolute",top:6,right:6,...mono(8),background:"rgba(42,106,58,0.9)",color:"#6adb8a",padding:"3px 8px",border:"1px solid #3a8a4a"}}>New</div>}
+      </div>
+      <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{display:"none"}}/>
+      <button onClick={()=>fileRef.current?.click()} disabled={uploading}
+        style={{width:"100%",background:uploading?S.bg3:S.goldDim,border:`1px solid ${S.goldBorder}`,color:uploading?S.muted:S.gold,fontFamily:"var(--font-mono)",fontSize:"11px",letterSpacing:"0.11em",textTransform:"uppercase",padding:"10px",cursor:uploading?"not-allowed":"pointer",fontWeight:600}}>
+        {uploading?"Uploading...":"↑ Upload New Hero Image"}
+      </button>
+      <div style={{fontFamily:"var(--font-mono)",fontSize:"8px",letterSpacing:"0.11em",textTransform:"uppercase",color:S.muted,marginTop:6}}>Note: On Vercel, images reset on redeploy. Commit hero.jpg to repo for permanence.</div>
+    </SideCard>
+  );
+}
+
 function Login({keyVal,setKey,login}:any){
   return (
     <div style={{ minHeight:"100vh", background:S.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
       <div style={{ background:S.bg2, border:`1px solid ${S.border}`, padding:48, width:380 }}>
-        <img src="/logo.png" alt="" style={{ height:48, width:"auto", marginBottom:20 }}/>
+        <img src="/logo.png" alt="Down Range Co." style={{ height:52, width:"auto", maxWidth:300, objectFit:"contain", marginBottom:8 }}/>
         <div style={{ ...mono(10), color:S.muted, marginBottom:28 }}>Store Admin</div>
         <input type="password" placeholder="Admin key" value={keyVal} onChange={e=>setKey(e.target.value)} onKeyDown={e=>e.key==="Enter"&&login()}
           style={{ ...iStyle, marginBottom:10 }}/>
