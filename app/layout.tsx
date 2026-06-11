@@ -5,6 +5,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import CartDrawer from "@/components/CartDrawer";
 import AnnouncementBar from "@/components/AnnouncementBar";
 import { ThemeProvider } from "@/context/ThemeContext";
+import Footer from "@/components/Footer";
 
 
 const SITE_SCHEMA = [
@@ -75,6 +76,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           <CartProvider>
             {children}
+            <Footer />
             <CartDrawer />
           </CartProvider>
         </AuthProvider>

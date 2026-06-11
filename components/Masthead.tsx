@@ -96,6 +96,11 @@ export default function Masthead() {
         .nav-top-link.our-story:hover { color:#6B7280; }
         .masthead-logo { display:block; height:auto; max-height:72px; width:auto; max-width:100%; }
         @media(max-width:900px) { .nav-desktop{display:none!important} .nav-mob-bar{display:flex!important} .masthead-dateline{display:none!important} }
+        .portal-strip { display:flex; align-items:center; gap:0; border-top:1px solid rgba(255,255,255,0.04); background:rgba(0,0,0,0.25); overflow-x:auto; }
+        .portal-link { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:0.10em; text-transform:uppercase; color:#555; text-decoration:none; padding:5px 12px; white-space:nowrap; transition:color 0.15s; border-right:1px solid rgba(255,255,255,0.04); }
+        .portal-link:hover { color:#C8922A; }
+        .portal-label { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:0.10em; text-transform:uppercase; color:#3a3a3a; padding:5px 12px; border-right:1px solid rgba(255,255,255,0.04); white-space:nowrap; }
+        @media(max-width:900px){ .portal-strip{display:none!important} }
         @media(min-width:901px) { .nav-mob-bar{display:none!important} }
         .mob-section-btn { width:100%; display:flex; align-items:center; justify-content:space-between; padding:13px 16px; background:none; border:none; border-bottom:1px solid #1F2428; cursor:pointer; text-align:left; }
         .mob-section-btn .mob-label { font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:#C8922A; }
@@ -197,6 +202,30 @@ export default function Masthead() {
           </div>
         </nav>
 
+
+        {/* ── Portal news links strip ── */}
+        <div className="portal-strip">
+          <span className="portal-label">📡 downrangeco.com</span>
+          {[
+            ["News",       "https://downrangeco.com/news"],
+            ["Deals",      "https://downrangeco.com/deals"],
+            ["Laws",       "https://downrangeco.com/laws"],
+            ["Reviews",    "https://downrangeco.com/reviews"],
+            ["Guns",       "https://downrangeco.com/guns"],
+            ["Market",     "https://downrangeco.com/market"],
+            ["Releases",   "https://downrangeco.com/releases"],
+            ["Hunting",    "https://downrangeco.com/hunting"],
+            ["Learn",      "https://downrangeco.com/learn"],
+            ["International","https://downrangeco.com/canada"],
+            ["Blog",       "https://downrangeco.com/blog"],
+            ["Video",      "https://downrangeco.com/video"],
+            ["Giveaways",  "https://downrangeco.com/giveaways"],
+          ].map(([label, href]) => (
+            <a key={href} href={href} target="_blank" rel="noopener noreferrer" className="portal-link">
+              {label}
+            </a>
+          ))}
+        </div>
         {/* ── Mobile bar ── */}
         <div className="nav-mob-bar" style={{ display:"none", alignItems:"center", justifyContent:"space-between", padding:"10px 0", borderTop:"1px solid #1F2428" }}>
           <a href="/products" style={{ background:"#C8922A", color:"#09090B", fontFamily:"'Barlow Condensed',sans-serif", fontSize:"12px", fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", padding:"6px 12px", textDecoration:"none" }}>

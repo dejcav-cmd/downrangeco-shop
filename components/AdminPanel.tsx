@@ -23,6 +23,7 @@ const TABS = [
   { id:"pages",       icon:"◌", label:"Pages",        badge:null },
   { id:"ops",         icon:"◎", label:"Operations",   badge:null },
   { id:"store",       icon:"◈", label:"Store Info",   badge:null },
+  { id:"social",      icon:"◉", label:"Social Media",  badge:null },
 ] as const;
 type TabId = typeof TABS[number]["id"];
 
@@ -196,6 +197,7 @@ export default function AdminPanel() {
           {tab==="pages"       && <PageEditor     adminKey={key} showToast={showToast}/>}
           {tab==="ops"         && <OpsTab         adminKey={key} onAlerts={setAlerts}/>}
           {tab==="store"       && <StoreInfoTab   apiFetch={apiFetch}/>}
+          {tab==="social"      && <SocialMediaTab  adminKey={key}/>}
         </div>
       </main>
 
@@ -1372,3 +1374,236 @@ function Login({keyVal,setKey,login}:any){
 
 
 
+
+// ══════════════════════════════════════════════════════════════════════
+// SOCIAL MEDIA TAB
+// ══════════════════════════════════════════════════════════════════════
+const SOCIAL_PLATFORMS = {
+  twitter:  { label:"X/Twitter", icon:"𝕏",  color:"#e5e5e5", cost:"$18/mo", costNote:"$0.20/URL post via Zernio. ~$18/mo at 3/day." },
+  bluesky:  { label:"Bluesky",   icon:"🦋", color:"#0085FF", cost:"FREE",   costNote:"Direct AT Protocol. No fees." },
+  facebook: { label:"Facebook",  icon:"f",  color:"#1877F2", cost:"FREE",   costNote:"Meta Graph API. Free." },
+  threads:  { label:"Threads",   icon:"@",  color:"#aaaaaa", cost:"FREE",   costNote:"Meta Graph API. Free." },
+  reddit:   { label:"Reddit",    icon:"🔴", color:"#FF4500", cost:"FREE",   costNote:"Reddit API. Free for posting." },
+  instagram:{ label:"Instagram", icon:"◈",  color:"#E1306C", cost:"FREE",   costNote:"Meta Graph API. Free." },
+};
+
+const OPTIMAL_TIMES: Record<string,any> = {
+  bluesky:   { times:[13,17,23], label:"8am · 12pm · 6pm ET",  rationale:"2A Bluesky community peaks mid-morning and early evening." },
+  twitter:   { times:[13,18,2],  label:"8am · 1pm · 9pm ET",   rationale:"X peaks pre-work, lunch, and prime time." },
+  facebook:  { times:[14,20,0],  label:"9am · 3pm · 7pm ET",   rationale:"Facebook 2A groups most active mid-morning and early evening." },
+  threads:   { times:[14,19,1],  label:"9am · 2pm · 8pm ET",   rationale:"Threads mirrors Instagram patterns." },
+  reddit:    { times:[12,18,22], label:"7am · 12pm · 5pm ET",  rationale:"r/CCW and r/guns peak before work, lunch, after work." },
+  instagram: { times:[14,20,0],  label:"9am · 3pm · 7pm ET",   rationale:"Visual content peaks mid-day and evening." },
+};
+
+const SETUP_STEPS: Record<string,any> = {
+  twitter:   { steps:["Sign up at zernio.com","Connect X/Twitter via OAuth in Zernio dashboard","Billing → add card + set spend cap ($25 suggested)","Dashboard → API Keys → copy key → add as ZERNIO_API_KEY in Vercel","Add ZERNIO_TWITTER_ACCOUNT_ID (acc_... from dashboard) to Vercel"], url:"https://zernio.com" },
+  bluesky:   { steps:["Create account at bsky.app","Settings → Privacy & Security → App Passwords → Add","Name it 'DownRange Shop' and copy the password","Add BLUESKY_HANDLE (e.g. downrangestore.bsky.social) to Vercel","Add BLUESKY_APP_PASSWORD to Vercel → redeploy"], url:"https://bsky.app" },
+  facebook:  { steps:["Create Down Range Co. Facebook Page","developers.facebook.com → Create App → Consumer type","Graph API Explorer → select page → generate Page Access Token","Copy Page ID from Page About section","Add FACEBOOK_PAGE_ACCESS_TOKEN + FACEBOOK_PAGE_ID to Vercel"], url:"https://developers.facebook.com" },
+  threads:   { steps:["Create @downrangestore Threads account","Same Meta developer app as Facebook","Add Threads API product → submit App Review (1-3 days)","Generate User Access Token","Add THREADS_ACCESS_TOKEN + THREADS_USER_ID to Vercel → redeploy"], url:"https://developers.facebook.com/docs/threads" },
+  reddit:    { steps:["Create u/DownRangeStore Reddit account","reddit.com/prefs/apps → Create App → choose 'script'","Copy client_id (under app name) and secret","Add REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USERNAME, REDDIT_PASSWORD to Vercel"], url:"https://www.reddit.com/prefs/apps" },
+  instagram: { steps:["Create Instagram Business account","Connect to Facebook Page in Instagram Settings","developers.facebook.com → Instagram Basic Display → get token","Add INSTAGRAM_ACCESS_TOKEN + INSTAGRAM_USER_ID to Vercel → redeploy"], url:"https://developers.facebook.com/docs/instagram" },
+};
+
+const SOCIAL_PROFILE_FIELDS = [
+  { key:"twitter",   label:"𝕏 X/Twitter",  placeholder:"https://x.com/DownRangeCo" },
+  { key:"bluesky",   label:"🦋 Bluesky",   placeholder:"https://bsky.app/profile/downrangeco.bsky.social" },
+  { key:"facebook",  label:"f Facebook",   placeholder:"https://www.facebook.com/downrangeco" },
+  { key:"threads",   label:"@ Threads",    placeholder:"https://www.threads.net/@downrangeco" },
+  { key:"instagram", label:"◈ Instagram",  placeholder:"https://www.instagram.com/downrangeco" },
+  { key:"reddit",    label:"🔴 Reddit",    placeholder:"https://www.reddit.com/user/DownRangeCo" },
+  { key:"youtube",   label:"▶ YouTube",   placeholder:"https://www.youtube.com/@DownRangeCo" },
+];
+
+function SocialMediaTab({ adminKey }:any) {
+  const [tab, setTab] = useState<"links"|"schedule"|"setup">("links");
+
+  const TABS_SOCIAL = [
+    { id:"links",    label:"🔗 Profile Links" },
+    { id:"schedule", label:"⏱ Post Schedule" },
+    { id:"setup",    label:"🔧 Setup Guide" },
+  ] as const;
+
+  return (
+    <div>
+      <div style={{ fontFamily:F, fontSize:34, letterSpacing:"0.04em", marginBottom:4 }}>
+        SOCIAL MEDIA <span style={{ color:S.gold }}>COMMAND</span>
+      </div>
+      <div style={{ ...m(8), color:S.muted, marginBottom:20 }}>
+        Configure social profiles, posting schedules, and platform credentials
+      </div>
+
+      {/* Sub-tabs */}
+      <div style={{ display:"flex", gap:0, borderBottom:`1px solid ${S.border}`, marginBottom:24 }}>
+        {TABS_SOCIAL.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id as any)}
+            style={{ ...m(9), padding:"9px 18px", background:"transparent", borderBottom:`2px solid ${tab===t.id?S.gold:"transparent"}`, border:"none", color:tab===t.id?S.gold:S.muted, cursor:"pointer", transition:"color 0.12s" }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab==="links"    && <SocialLinksTab    adminKey={adminKey}/>}
+      {tab==="schedule" && <SocialScheduleTab adminKey={adminKey}/>}
+      {tab==="setup"    && <SocialSetupTab/>}
+    </div>
+  );
+}
+
+function SocialLinksTab({ adminKey }:any) {
+  const [links,  setLinks]  = useState<Record<string,string>>({});
+  const [saving, setSaving] = useState(false);
+  const [msg,    setMsg]    = useState("");
+
+  useEffect(()=>{
+    fetch("/api/social/config",{headers:{"x-admin-key":adminKey}}).then(r=>r.json())
+      .then(d=>{ if(d.ok&&d.config?.socialLinks) setLinks(d.config.socialLinks); }).catch(()=>{});
+  },[adminKey]);
+
+  const save = async()=>{
+    setSaving(true);
+    try {
+      const r = await fetch("/api/social/config",{method:"POST",headers:{"x-admin-key":adminKey,"Content-Type":"application/json"},body:JSON.stringify({socialLinks:links})});
+      const d = await r.json();
+      setMsg(d.ok?"✓ Saved — icons update on next page load":"✗ "+(d.error||"Save failed"));
+    } catch(e:any){ setMsg("✗ "+e.message); }
+    setSaving(false); setTimeout(()=>setMsg(""),4000);
+  };
+
+  return (
+    <div>
+      <div style={{ background:"rgba(34,197,94,0.06)", border:"1px solid rgba(34,197,94,0.2)", padding:"12px 16px", marginBottom:20 }}>
+        <div style={{ ...m(9), color:S.greenText, marginBottom:4 }}>Social profile links</div>
+        <div style={{ ...m(8), color:S.muted, lineHeight:1.7 }}>
+          Enter the full URL for each platform profile. Icons appear in the site header and footer for any platform with a URL. Leave blank to hide.
+        </div>
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:20 }}>
+        {SOCIAL_PROFILE_FIELDS.map(f=>(
+          <div key={f.key}>
+            <FieldLbl>{f.label}</FieldLbl>
+            <input value={links[f.key]||""} onChange={e=>setLinks(l=>({...l,[f.key]:e.target.value}))} placeholder={f.placeholder} style={iStyle()}/>
+          </div>
+        ))}
+      </div>
+      <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+        <Btn onClick={save} disabled={saving}>{saving?"Saving…":"Save Links"}</Btn>
+        {msg && <span style={{ ...m(9), color:msg.startsWith("✓")?S.greenText:"#e08080" }}>{msg}</span>}
+      </div>
+    </div>
+  );
+}
+
+function SocialScheduleTab({ adminKey }:any) {
+  const [config,  setConfig]  = useState<any>({});
+  const [saving,  setSaving]  = useState<string|null>(null);
+  const [msg,     setMsg]     = useState("");
+
+  useEffect(()=>{
+    fetch("/api/social/config",{headers:{"x-admin-key":adminKey}}).then(r=>r.json())
+      .then(d=>{ if(d.ok&&d.config) setConfig(d.config); }).catch(()=>{});
+  },[adminKey]);
+
+  const saveplatform = async(pid:string, update:any)=>{
+    setSaving(pid);
+    const next = {...config, platforms_config:{...(config.platforms_config||{}),[pid]:update}};
+    try {
+      const r = await fetch("/api/social/config",{method:"POST",headers:{"x-admin-key":adminKey,"Content-Type":"application/json"},body:JSON.stringify(next)});
+      const d = await r.json();
+      if(d.ok){ setConfig(next); setMsg(`✓ ${(SOCIAL_PLATFORMS as any)[pid]?.label} saved`); }
+      else setMsg("✗ "+(d.error||"Save failed"));
+    } catch(e:any){ setMsg("✗ "+e.message); }
+    setSaving(null); setTimeout(()=>setMsg(""),3000);
+  };
+
+  return (
+    <div>
+      {msg && <div style={{ ...m(9), color:msg.startsWith("✓")?S.greenText:"#e08080", marginBottom:16, padding:"8px 12px", background:msg.startsWith("✓")?S.greenDim:S.redDim, border:`1px solid ${msg.startsWith("✓")?"rgba(34,197,94,.3)":S.redBorder}` }}>{msg}</div>}
+      <div style={{ ...m(8), color:S.muted, marginBottom:20, lineHeight:1.7 }}>
+        Configure posting schedule per platform. All times in UTC. These settings will apply when social posting crons are enabled.
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+        {Object.entries(SOCIAL_PLATFORMS).map(([pid,p]:any)=>{
+          const cfg = config?.platforms_config?.[pid] || {};
+          const opt = OPTIMAL_TIMES[pid] || { times:[14,20], label:"—", rationale:"" };
+          const [enabled,  setEnabled]  = useState(cfg.enabled??false);
+          const [times,    setTimes]    = useState((cfg.times||opt.times).join(", "));
+          const [perRun,   setPerRun]   = useState(cfg.postsPerRun??1);
+          return (
+            <div key={pid} style={{ background:S.card, border:`1px solid ${enabled?p.color+"40":S.border}`, padding:"16px 18px" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
+                <span style={{ fontSize:18 }}>{p.icon}</span>
+                <div style={{ flex:1 }}>
+                  <div style={{ ...m(10), color:enabled?p.color:S.muted }}>{p.label}</div>
+                  <div style={{ ...m(7), color:S.muted, marginTop:2 }}>{p.costNote}</div>
+                </div>
+                <span style={{ ...m(7), padding:"2px 7px", background:p.cost==="FREE"?"rgba(34,197,94,.1)":"rgba(239,68,68,.1)", color:p.cost==="FREE"?S.greenText:"#e08080", border:`1px solid ${p.cost==="FREE"?"rgba(34,197,94,.2)":"rgba(239,68,68,.2)"}` }}>{p.cost}</span>
+                {/* Toggle */}
+                <div onClick={()=>setEnabled((e:boolean)=>!e)} style={{ width:36,height:20,borderRadius:10,background:enabled?p.color:S.bg3,position:"relative",cursor:"pointer",transition:"background 0.2s",flexShrink:0,border:`1px solid ${S.border}` }}>
+                  <div style={{ position:"absolute",top:3,left:enabled?"19px":"3px",width:12,height:12,borderRadius:"50%",background:"#fff",transition:"left 0.2s" }}/>
+                </div>
+              </div>
+              <div style={{ background:S.bg3, border:`1px solid rgba(34,197,94,0.15)`, padding:"8px 12px", marginBottom:12 }}>
+                <div style={{ ...m(7), color:S.greenText, marginBottom:3 }}>✦ Optimal: {opt.label}</div>
+                <div style={{ ...m(7), color:S.muted }}>{opt.rationale}</div>
+              </div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 80px", gap:8, marginBottom:12 }}>
+                <div>
+                  <FieldLbl>Post times (UTC hours)</FieldLbl>
+                  <input value={times} onChange={e=>setTimes(e.target.value)} placeholder={opt.times.join(", ")} style={iStyle()}/>
+                </div>
+                <div>
+                  <FieldLbl>Per run</FieldLbl>
+                  <input type="number" min={1} max={5} value={perRun} onChange={e=>setPerRun(Number(e.target.value))} style={iStyle()}/>
+                </div>
+              </div>
+              <Btn onClick={()=>saveplatform(pid,{enabled,postsPerRun:perRun,times:times.split(",").map((t:string)=>parseInt(t.trim())).filter((n:number)=>!isNaN(n))})} disabled={saving===pid} size="sm">
+                {saving===pid?"Saving…":"Save"}
+              </Btn>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SocialSetupTab() {
+  const [open, setOpen] = useState<string|null>(null);
+  return (
+    <div>
+      <SideCard title="Platform Costs at a Glance" style={{ marginBottom:16 }}>
+        <div style={{ ...m(9), color:S.muted, lineHeight:2 }}>
+          🦋 Bluesky → FREE · @ Threads → FREE · f Facebook → FREE · 🔴 Reddit → FREE · ◈ Instagram → FREE<br/>
+          𝕏 X/Twitter → $0.20/URL post via Zernio (~$18/mo at 3/day). Optional.
+        </div>
+      </SideCard>
+      {Object.entries(SETUP_STEPS).map(([pid, s]:any)=>{
+        const p = (SOCIAL_PLATFORMS as any)[pid];
+        if(!p) return null;
+        return (
+          <div key={pid} style={{ marginBottom:6 }}>
+            <div onClick={()=>setOpen(open===pid?null:pid)}
+              style={{ display:"flex",alignItems:"center",gap:10,padding:"12px 16px",background:S.card,border:`1px solid ${open===pid?p.color+"40":S.border}`,cursor:"pointer" }}>
+              <span style={{ fontSize:16 }}>{p.icon}</span>
+              <span style={{ flex:1,...m(10),color:open===pid?p.color:S.muted }}>{p.label}</span>
+              <span style={{ ...m(7),padding:"2px 7px",background:p.cost==="FREE"?"rgba(34,197,94,.1)":"rgba(239,68,68,.1)",color:p.cost==="FREE"?S.greenText:"#e08080",border:`1px solid ${p.cost==="FREE"?"rgba(34,197,94,.2)":"rgba(239,68,68,.2)"}` }}>{p.cost}</span>
+              <a href={s.url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{ ...m(8),color:S.gold,textDecoration:"none" }}>portal ↗</a>
+              <span style={{ color:S.muted,fontSize:10 }}>{open===pid?"▲":"▼"}</span>
+            </div>
+            {open===pid && (
+              <div style={{ background:S.bg2,border:`1px solid ${p.color}20`,borderTop:"none",padding:"14px 16px" }}>
+                {s.steps.map((step:string,i:number)=>(
+                  <div key={i} style={{ display:"flex",gap:10,marginBottom:8 }}>
+                    <span style={{ fontFamily:F,fontSize:14,color:p.color,flexShrink:0,width:18,textAlign:"right" as const }}>{i+1}</span>
+                    <span style={{ ...m(9),color:S.muted,lineHeight:1.6,textTransform:"none" as const }}>{step}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
