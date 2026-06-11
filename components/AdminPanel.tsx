@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import PageEditor from "@/components/PageEditor";
 
 const S = {
   bg:"#09090B", bg2:"#111113", bg3:"#1A1A1D", card:"#141416",
@@ -119,7 +120,7 @@ export default function AdminPanel() {
           {tab==="collections" && <CollectionsTab apiFetch={apiFetch}/>}
           {tab==="storefront"  && <StorefrontTab  adminKey={key} showToast={showToast}/>}
           {tab==="store"       && <StoreInfoTab   apiFetch={apiFetch}/>}
-          {tab==="pages"       && <PagesTab        adminKey={key} showToast={showToast}/>}
+          {tab==="pages"       && <PageEditor      adminKey={key} showToast={showToast}/>}
         </div>
       </div>
 
