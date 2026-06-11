@@ -1604,7 +1604,7 @@ function OpsTab({ adminKey }: { adminKey: string }) {
           </div>
         </div>
         {wbResult&&(
-          <div style={{marginBottom:12,padding:"10px 14px",background:wbResult.ok?S.greenDim:S.redDim,border:`1px solid ${wbResult.ok?"rgba(22,163,74,0.3)":"rgba(184,64,64,0.3)"}`}}>
+          <div style={{marginBottom:12,padding:"10px 14px",background:wbResult.ok?"rgba(22,163,74,0.1)":S.redDim,border:`1px solid ${wbResult.ok?"rgba(22,163,74,0.3)":"rgba(184,64,64,0.3)"}`}}>
             {wbResult.ok
               ? <><div style={{...mono(9),color:S.greenText}}>✓ {wbResult.results?.filter((r:any)=>r.ok).length}/{wbResult.results?.length} webhooks registered</div>
                   <div style={{...mono(8),color:S.muted,marginTop:4}}>Next: copy Webhook Secret from Shopify Admin → Settings → Notifications → Webhooks, add to Vercel as SHOPIFY_WEBHOOK_SECRET, then redeploy.</div></>
