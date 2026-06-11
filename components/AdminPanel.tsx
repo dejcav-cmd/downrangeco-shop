@@ -1478,14 +1478,13 @@ function SocialLinksTab({ adminKey }:any) {
   const save = async()=>{
     setSaving(true);
     try {
-      // Build socialLinks map and socialEnabled map — merge with existing config
-      const socialLinks:any = {};
+      const socialLinks:any  = {};
       const socialEnabled:any = {};
       entries.forEach(e=>{ socialLinks[e.key]=e.url; socialEnabled[e.key]=e.enabled; });
-      const next = {...fullConfig, socialLinks, socialEnabled};
-      const r = await fetch("/api/social/config",{method:"POST",headers:{"x-admin-key":adminKey,"Content-Type":"application/json"},body:JSON.stringify(next)});
+      // POST only social keys — server merges with rest of config automatically
+      const r = await fetch("/api/social/config",{method:"POST",headers:{"x-admin-key":adminKey,"Content-Type":"application/json"},body:JSON.stringify({socialLinks,socialEnabled})});
       const d = await r.json();
-      if(d.ok){ setFullConfig(next); setMsg("✓ Saved"); }
+      if(d.ok){ setFullConfig(d.config||{}); setMsg("✓ Saved"); }
       else setMsg("✗ "+(d.error||"Save failed"));
     } catch(e:any){ setMsg("✗ "+e.message); }
     setSaving(false); setTimeout(()=>setMsg(""),4000);
@@ -1542,14 +1541,12 @@ function SocialScheduleTab({ adminKey }:any) {
 
   const saveplatform = async(pid:string, update:any)=>{
     setSaving(pid);
-    // Fetch latest config first so we never clobber socialLinks saved by the Links tab
-    let latest = config;
-    try { const lr=await fetch("/api/social/config",{headers:{"x-admin-key":adminKey},cache:"no-store"}).then(r=>r.json()); if(lr.ok) latest=lr.config||{}; } catch{}
-    const next = {...latest, platforms_config:{...(latest.platforms_config||{}),[pid]:update}};
+    // POST only platforms_config key — server merges automatically
+    const platforms_config = {...(config.platforms_config||{}),[pid]:update};
     try {
-      const r = await fetch("/api/social/config",{method:"POST",headers:{"x-admin-key":adminKey,"Content-Type":"application/json"},body:JSON.stringify(next)});
+      const r = await fetch("/api/social/config",{method:"POST",headers:{"x-admin-key":adminKey,"Content-Type":"application/json"},body:JSON.stringify({platforms_config})});
       const d = await r.json();
-      if(d.ok){ setConfig(next); setMsg(`✓ ${(SOCIAL_PLATFORMS as any)[pid]?.label} saved`); }
+      if(d.ok){ setConfig(d.config||config); setMsg(`✓ ${(SOCIAL_PLATFORMS as any)[pid]?.label} saved`); }
       else setMsg("✗ "+(d.error||"Save failed"));
     } catch(e:any){ setMsg("✗ "+e.message); }
     setSaving(null); setTimeout(()=>setMsg(""),3000);

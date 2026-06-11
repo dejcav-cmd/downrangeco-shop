@@ -12,28 +12,20 @@ export default function Footer() {
   const [connectLinks, setConnectLinks] = useState<{label:string;href:string}[]>([]);
 
   useEffect(() => {
-    // Load social links from admin-configured social config
     fetch("/api/social/config", { cache: "no-store" })
       .then(r => r.json())
       .then(d => {
-        const links    = d.config?.socialLinks    || {};
-        const enabled  = d.config?.socialEnabled  || {};
-        // Always show portal link at top
-        const built: {label:string;href:string}[] = [];
-        built.push({ label:"📡 News Portal", href:"https://downrangeco.com" });
-        Object.entries(PLATFORM_LABELS).forEach(([key, label]) => {
-          if(key==="portal") return;
-          if(enabled[key] && links[key]) built.push({ label, href: links[key] });
-        });
-        if(built.length > 1) setConnectLinks(built);
+        // Public endpoint returns { active: [{key,label,href}] }
+        const active = d.active || [];
+        const built: {label:string;href:string}[] = [
+          { label:"📡 News Portal", href:"https://downrangeco.com" },
+          ...active.map((a:any) => ({ label:a.label, href:a.href })),
+        ];
+        setConnectLinks(built);
       })
       .catch(() => {
-        // Fallback defaults if API unavailable
         setConnectLinks([
-          { label:"📡 News Portal",  href:"https://downrangeco.com" },
-          { label:"𝕏 X / Twitter",  href:"https://x.com/DownRangeCo" },
-          { label:"🦋 Bluesky",      href:"https://bsky.app/profile/downrangeco.bsky.social" },
-          { label:"▶ YouTube",       href:"https://www.youtube.com/@DownRangeCo" },
+          { label:"📡 News Portal", href:"https://downrangeco.com" },
         ]);
       });
   }, []);
