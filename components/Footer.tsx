@@ -1,56 +1,115 @@
 "use client";
 
-const SOCIAL = [
-  { label: "𝕏",  title: "X / Twitter", href: "https://x.com/DownRangeCo",                       color: "#e5e5e5" },
-  { label: "🦋", title: "Bluesky",      href: "https://bsky.app/profile/downrangeco.bsky.social", color: "#0085FF" },
-  { label: "▶",  title: "YouTube",      href: "https://www.youtube.com/@DownRangeCo",              color: "#FF0000" },
-  { label: "f",  title: "Facebook",     href: "https://www.facebook.com/downrangeco",              color: "#1877F2" },
-  { label: "◈",  title: "Instagram",    href: "https://www.instagram.com/downrangeco",             color: "#E1306C" },
-];
-
 export default function Footer() {
   const year = new Date().getFullYear();
+
+  const linkStyle = {
+    fontSize: "12px", color: "var(--muted)", textDecoration: "none", transition: "color 0.15s", display: "block",
+  } as const;
+
   return (
-    <footer style={{
-      background: "#07080A",
-      borderTop: "1px solid rgba(255,255,255,0.06)",
-      padding: "28px 0",
-    }}>
-      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+    <footer style={{ background: "var(--footer-bg)", borderTop: "1px solid rgba(255,255,255,0.06)", padding: "44px 32px 24px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: "40px", marginBottom: "32px", maxWidth: "1200px", margin: "0 auto 32px" }}>
 
-        {/* Left — copyright */}
-        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: "#6B7280", letterSpacing: "0.06em", textTransform: "uppercase" }}>
-          © {year} Down Range Co. · All Rights Reserved
+        {/* Brand */}
+        <div>
+          <div style={{ marginBottom: "14px" }}>
+            <img src="/logo.png" alt="Down Range Co." style={{ height: "130px", width: "auto", maxWidth: "520px", objectFit: "contain" }} />
+          </div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.12em", color: "var(--muted)", textTransform: "uppercase", lineHeight: 1.8 }}>
+            Gear for hunters, shooters &amp;<br />
+            those who defend the Second.<br /><br />
+            Washington State, USA
+          </div>
         </div>
 
-        {/* Center — social icons */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: "#4B5563", letterSpacing: "0.08em", textTransform: "uppercase", marginRight: 6 }}>
-            Social Media:
-          </span>
-          {SOCIAL.map(s => (
-            <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" title={s.title}
-              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: s.color, textDecoration: "none", fontSize: 13, transition: "border-color 0.15s, background 0.15s" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = s.color + "60"; (e.currentTarget as HTMLElement).style.background = s.color + "14"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.08)"; (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)"; }}>
-              {s.label}
-            </a>
-          ))}
+        {/* Shop */}
+        <div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--gold)", marginBottom: "14px" }}>Shop</div>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "8px" }}>
+            {[
+              { label: "All Products",   href: "/products" },
+              { label: "Hunting",        href: "/products?category=Hunting" },
+              { label: "2A / Patriot",   href: "/products?category=2A+%2F+Patriot" },
+              { label: "Military / Vet", href: "/products?category=Military+%2F+Vet" },
+              { label: "Long Range",     href: "/products?category=Long+Range" },
+            ].map(l => (
+              <li key={l.label}>
+                <a href={l.href} style={linkStyle}
+                  onMouseEnter={e => ((e.target as HTMLElement).style.color = "var(--text)")}
+                  onMouseLeave={e => ((e.target as HTMLElement).style.color = "var(--muted)")}>
+                  {l.label}
+                </a>
+              </li>
+            ))}
+          </ul>
         </div>
 
-        {/* Right — legal links */}
-        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-          {[["Privacy", "/pages/privacy"], ["Terms", "/pages/terms"], ["Contact", "/pages/contact"]].map(([l, h]) => (
-            <a key={h} href={h}
-              style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: "#6B7280", textDecoration: "none", letterSpacing: "0.06em", textTransform: "uppercase", transition: "color 0.15s" }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "#C8922A"}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "#6B7280"}>
-              {l}
-            </a>
-          ))}
+        {/* Info — all real links now */}
+        <div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--gold)", marginBottom: "14px" }}>Info</div>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "8px" }}>
+            {[
+              { label: "Sizing Guide",      href: "/pages/sizing-guide" },
+              { label: "Shipping & Returns",href: "/pages/shipping-returns" },
+              { label: "FAQ",               href: "/pages/faq" },
+              { label: "Contact",           href: "/pages/contact" },
+            ].map(l => (
+              <li key={l.label}>
+                <a href={l.href} style={linkStyle}
+                  onMouseEnter={e => ((e.target as HTMLElement).style.color = "var(--text)")}
+                  onMouseLeave={e => ((e.target as HTMLElement).style.color = "var(--muted)")}>
+                  {l.label}
+                </a>
+              </li>
+            ))}
+          </ul>
         </div>
 
+        {/* Connect */}
+        <div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--gold)", marginBottom: "14px" }}>Connect</div>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "8px" }}>
+            {[
+              { label: "DownRange Portal", href: "https://downrangeco.com", external: true },
+              { label: "My Account",       href: "https://shopify.com/83728892116/account", external: true },
+              { label: "Instagram",        href: "#" },
+              { label: "Facebook",         href: "#" },
+            ].map(l => (
+              <li key={l.label}>
+                <a href={l.href} target={l.external ? "_blank" : undefined} rel={l.external ? "noopener noreferrer" : undefined}
+                  style={linkStyle}
+                  onMouseEnter={e => ((e.target as HTMLElement).style.color = "var(--text)")}
+                  onMouseLeave={e => ((e.target as HTMLElement).style.color = "var(--muted)")}>
+                  {l.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
+
+      {/* Bottom bar */}
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "18px", display: "flex", justifyContent: "space-between", alignItems: "center", maxWidth: "1200px", margin: "0 auto", flexWrap: "wrap", gap: "12px" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.1em", color: "var(--muted)", textTransform: "uppercase" }}>
+          © {year} DownRange Co. — All Rights Reserved
+        </div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "var(--muted)", letterSpacing: "0.08em", display: "flex", gap: "20px" }}>
+          {[
+            { label: "Privacy",  href: "/pages/privacy" },
+            { label: "Terms",    href: "/pages/terms" },
+            { label: "2A Proud", href: "/pages/2a-proud" },
+          ].map(l => (
+            <a key={l.label} href={l.href} style={{ color: "var(--muted)", textDecoration: "none", transition: "color 0.15s" }}
+              onMouseEnter={e => ((e.target as HTMLElement).style.color = "var(--gold)")}
+              onMouseLeave={e => ((e.target as HTMLElement).style.color = "var(--muted)")}>
+              {l.label}
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <style>{`@media(max-width:900px){footer>div:first-child{grid-template-columns:1fr 1fr!important}}`}</style>
     </footer>
   );
 }
