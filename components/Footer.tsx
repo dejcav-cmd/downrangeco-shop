@@ -1,34 +1,47 @@
 "use client";
 import { useState, useEffect } from "react";
 
-const DEFAULT_CONNECT = [
-  { id:"portal",    label:"📡 News Portal", href:"https://downrangeco.com",                         enabled:true },
-  { id:"twitter",   label:"𝕏 X / Twitter",  href:"https://x.com/DownRangeCo",                      enabled:true },
-  { id:"bluesky",   label:"🦋 Bluesky",      href:"https://bsky.app/profile/downrangeco.bsky.social",enabled:true },
-  { id:"youtube",   label:"▶ YouTube",       href:"https://www.youtube.com/@DownRangeCo",            enabled:true },
-  { id:"facebook",  label:"f Facebook",      href:"https://www.facebook.com/downrangeco",            enabled:true },
-  { id:"instagram", label:"◈ Instagram",     href:"https://www.instagram.com/downrangeco",           enabled:false},
-  { id:"threads",   label:"@ Threads",       href:"https://www.threads.net/@downrangeco",            enabled:false},
-  { id:"reddit",    label:"🔴 Reddit",        href:"https://www.reddit.com/r/DownRangeCo",            enabled:false},
-];
+const PLATFORM_LABELS: Record<string,string> = {
+  portal:"📡 News Portal", twitter:"𝕏 X / Twitter", bluesky:"🦋 Bluesky",
+  youtube:"▶ YouTube", facebook:"f Facebook", instagram:"◈ Instagram",
+  threads:"@ Threads", reddit:"🔴 Reddit",
+};
 
 export default function Footer() {
   const year = new Date().getFullYear();
-  const [connectLinks, setConnectLinks] = useState(DEFAULT_CONNECT);
+  const [connectLinks, setConnectLinks] = useState<{label:string;href:string}[]>([]);
 
   useEffect(() => {
-    fetch("/api/footer", { cache: "no-store" })
+    // Load social links from admin-configured social config
+    fetch("/api/social/config", { cache: "no-store" })
       .then(r => r.json())
-      .then(d => { if (d.links?.length) setConnectLinks(d.links); })
-      .catch(() => {});
+      .then(d => {
+        const links    = d.config?.socialLinks    || {};
+        const enabled  = d.config?.socialEnabled  || {};
+        // Always show portal link at top
+        const built: {label:string;href:string}[] = [];
+        built.push({ label:"📡 News Portal", href:"https://downrangeco.com" });
+        Object.entries(PLATFORM_LABELS).forEach(([key, label]) => {
+          if(key==="portal") return;
+          if(enabled[key] && links[key]) built.push({ label, href: links[key] });
+        });
+        if(built.length > 1) setConnectLinks(built);
+      })
+      .catch(() => {
+        // Fallback defaults if API unavailable
+        setConnectLinks([
+          { label:"📡 News Portal",  href:"https://downrangeco.com" },
+          { label:"𝕏 X / Twitter",  href:"https://x.com/DownRangeCo" },
+          { label:"🦋 Bluesky",      href:"https://bsky.app/profile/downrangeco.bsky.social" },
+          { label:"▶ YouTube",       href:"https://www.youtube.com/@DownRangeCo" },
+        ]);
+      });
   }, []);
 
   const linkStyle = {
     fontSize: "12px", color: "var(--muted)", textDecoration: "none",
     transition: "color 0.15s", display: "block",
   } as const;
-
-  const activeLinks = connectLinks.filter(l => l.enabled);
 
   return (
     <footer style={{ background:"var(--footer-bg)", borderTop:"1px solid rgba(255,255,255,0.06)", padding:"44px 32px 24px" }}>
@@ -83,12 +96,12 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Connect — dynamic, admin-configurable */}
+        {/* Connect — admin-configurable via Social Media → Profile Links */}
         <div>
           <div style={{ fontFamily:"var(--font-mono)", fontSize:"10px", letterSpacing:"0.18em", textTransform:"uppercase", color:"var(--gold)", marginBottom:"14px" }}>Connect</div>
           <ul style={{ listStyle:"none", padding:0, margin:0, display:"flex", flexDirection:"column", gap:"8px" }}>
-            {activeLinks.map(l=>(
-              <li key={l.id}>
+            {connectLinks.map(l=>(
+              <li key={l.href}>
                 <a href={l.href} target="_blank" rel="noopener noreferrer" style={linkStyle}
                   onMouseEnter={e=>((e.target as HTMLElement).style.color="var(--text)")}
                   onMouseLeave={e=>((e.target as HTMLElement).style.color="var(--muted)")}>{l.label}</a>

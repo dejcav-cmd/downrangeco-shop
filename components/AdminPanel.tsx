@@ -1452,44 +1452,79 @@ function SocialMediaTab({ adminKey }:any) {
 }
 
 function SocialLinksTab({ adminKey }:any) {
-  const [links,  setLinks]  = useState<Record<string,string>>({});
+  const [entries, setEntries] = useState<{key:string;label:string;url:string;enabled:boolean;placeholder:string}[]>([]);
+  const [fullConfig, setFullConfig] = useState<any>({});
   const [saving, setSaving] = useState(false);
   const [msg,    setMsg]    = useState("");
 
+  const DEFAULTS = SOCIAL_PROFILE_FIELDS.map(f=>({key:f.key,label:f.label,url:"",enabled:false,placeholder:f.placeholder}));
+
   useEffect(()=>{
-    fetch("/api/social/config",{headers:{"x-admin-key":adminKey}}).then(r=>r.json())
-      .then(d=>{ if(d.ok&&d.config?.socialLinks) setLinks(d.config.socialLinks); }).catch(()=>{});
+    fetch("/api/social/config",{headers:{"x-admin-key":adminKey},cache:"no-store"}).then(r=>r.json())
+      .then(d=>{
+        if(d.ok){
+          setFullConfig(d.config||{});
+          const saved = d.config?.socialLinks || {};
+          const savedEnabled = d.config?.socialEnabled || {};
+          setEntries(SOCIAL_PROFILE_FIELDS.map(f=>({
+            key:f.key, label:f.label, placeholder:f.placeholder,
+            url: saved[f.key]||"",
+            enabled: savedEnabled[f.key]??false,
+          })));
+        }
+      }).catch(()=>setEntries(DEFAULTS));
   },[adminKey]);
 
   const save = async()=>{
     setSaving(true);
     try {
-      const r = await fetch("/api/social/config",{method:"POST",headers:{"x-admin-key":adminKey,"Content-Type":"application/json"},body:JSON.stringify({socialLinks:links})});
+      // Build socialLinks map and socialEnabled map — merge with existing config
+      const socialLinks:any = {};
+      const socialEnabled:any = {};
+      entries.forEach(e=>{ socialLinks[e.key]=e.url; socialEnabled[e.key]=e.enabled; });
+      const next = {...fullConfig, socialLinks, socialEnabled};
+      const r = await fetch("/api/social/config",{method:"POST",headers:{"x-admin-key":adminKey,"Content-Type":"application/json"},body:JSON.stringify(next)});
       const d = await r.json();
-      setMsg(d.ok?"✓ Saved — icons update on next page load":"✗ "+(d.error||"Save failed"));
+      if(d.ok){ setFullConfig(next); setMsg("✓ Saved"); }
+      else setMsg("✗ "+(d.error||"Save failed"));
     } catch(e:any){ setMsg("✗ "+e.message); }
     setSaving(false); setTimeout(()=>setMsg(""),4000);
   };
 
+  const update = (key:string, field:"url"|"enabled", value:any) =>
+    setEntries(es=>es.map(e=>e.key===key?{...e,[field]:value}:e));
+
+  const activeCount = entries.filter(e=>e.enabled&&e.url).length;
+
   return (
     <div>
-      <div style={{ background:"rgba(34,197,94,0.06)", border:"1px solid rgba(34,197,94,0.2)", padding:"12px 16px", marginBottom:20 }}>
-        <div style={{ ...m(9), color:S.greenText, marginBottom:4 }}>Social profile links</div>
-        <div style={{ ...m(8), color:S.muted, lineHeight:1.7 }}>
-          Enter the full URL for each platform profile. Icons appear in the site header and footer for any platform with a URL. Leave blank to hide.
-        </div>
+      <div style={{background:S.goldDim,border:`1px solid ${S.goldBorder}`,padding:"10px 14px",marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{...m(8),color:S.gold}}>{activeCount} platform{activeCount!==1?"s":""} active in shop footer Connect column</div>
+        <div style={{...m(8),color:S.muted}}>Toggle to show/hide · enter URL to enable</div>
       </div>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:20 }}>
-        {SOCIAL_PROFILE_FIELDS.map(f=>(
-          <div key={f.key}>
-            <FieldLbl>{f.label}</FieldLbl>
-            <input value={links[f.key]||""} onChange={e=>setLinks(l=>({...l,[f.key]:e.target.value}))} placeholder={f.placeholder} style={iStyle()}/>
+      <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:20}}>
+        {entries.map(e=>(
+          <div key={e.key} style={{background:S.card,border:`1px solid ${e.enabled&&e.url?S.goldBorder:S.border}`,padding:"12px 14px",display:"grid",gridTemplateColumns:"44px 110px 1fr",gap:12,alignItems:"center",opacity:e.enabled&&e.url?1:0.65,transition:"opacity 0.15s,border-color 0.15s"}}>
+            {/* Toggle */}
+            <div onClick={()=>update(e.key,"enabled",!e.enabled)}
+              style={{width:36,height:20,borderRadius:10,background:e.enabled&&e.url?S.gold:S.bg3,position:"relative",cursor:"pointer",transition:"background 0.2s",border:`1px solid ${S.border}`,flexShrink:0}}>
+              <div style={{position:"absolute",top:3,left:e.enabled&&e.url?"19px":"3px",width:12,height:12,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
+            </div>
+            {/* Label */}
+            <div style={{...m(9),color:e.enabled&&e.url?S.text:S.muted}}>{e.label}</div>
+            {/* URL */}
+            <input value={e.url} onChange={ev=>update(e.key,"url",ev.target.value)} placeholder={e.placeholder} style={{...iStyle(),fontSize:11,borderColor:e.enabled&&!e.url?"rgba(184,64,64,0.5)":S.border}}/>
           </div>
         ))}
       </div>
-      <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-        <Btn onClick={save} disabled={saving}>{saving?"Saving…":"Save Links"}</Btn>
-        {msg && <span style={{ ...m(9), color:msg.startsWith("✓")?S.greenText:"#e08080" }}>{msg}</span>}
+      {entries.some(e=>e.enabled&&!e.url)&&(
+        <div style={{...m(8),color:"#e08080",marginBottom:12,padding:"8px 12px",background:S.redDim,border:`1px solid ${S.redBorder}`}}>
+          ⚠ Some enabled platforms have no URL — they will be hidden in the footer until a URL is added.
+        </div>
+      )}
+      <div style={{display:"flex",alignItems:"center",gap:14}}>
+        <Btn onClick={save} disabled={saving}>{saving?"Saving…":"💾 Save Social Links"}</Btn>
+        {msg&&<span style={{...m(9),color:msg.startsWith("✓")?S.greenText:"#e08080"}}>{msg}</span>}
       </div>
     </div>
   );
@@ -1501,13 +1536,16 @@ function SocialScheduleTab({ adminKey }:any) {
   const [msg,     setMsg]     = useState("");
 
   useEffect(()=>{
-    fetch("/api/social/config",{headers:{"x-admin-key":adminKey}}).then(r=>r.json())
+    fetch("/api/social/config",{headers:{"x-admin-key":adminKey},cache:"no-store"}).then(r=>r.json())
       .then(d=>{ if(d.ok&&d.config) setConfig(d.config); }).catch(()=>{});
   },[adminKey]);
 
   const saveplatform = async(pid:string, update:any)=>{
     setSaving(pid);
-    const next = {...config, platforms_config:{...(config.platforms_config||{}),[pid]:update}};
+    // Fetch latest config first so we never clobber socialLinks saved by the Links tab
+    let latest = config;
+    try { const lr=await fetch("/api/social/config",{headers:{"x-admin-key":adminKey},cache:"no-store"}).then(r=>r.json()); if(lr.ok) latest=lr.config||{}; } catch{}
+    const next = {...latest, platforms_config:{...(latest.platforms_config||{}),[pid]:update}};
     try {
       const r = await fetch("/api/social/config",{method:"POST",headers:{"x-admin-key":adminKey,"Content-Type":"application/json"},body:JSON.stringify(next)});
       const d = await r.json();
