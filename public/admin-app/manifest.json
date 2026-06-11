@@ -1,0 +1,14 @@
+{
+  "name": "DR Shop Admin",
+  "short_name": "DR Shop",
+  "description": "Down Range Co. Store Admin",
+  "start_url": "/admin-app/",
+  "display": "standalone",
+  "background_color": "#09090B",
+  "theme_color": "#09090B",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "../pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "../pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

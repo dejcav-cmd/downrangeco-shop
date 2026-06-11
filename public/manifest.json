@@ -1,24 +1,59 @@
 {
   "name": "Down Range Co.",
   "short_name": "DR Co.",
-  "description": "2A · Hunting · Outdoor Apparel — Washington-owned, American-printed",
+  "description": "2A \u00b7 Hunting \u00b7 Outdoor Apparel \u2014 Washington-owned, American-printed",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#09090B",
   "theme_color": "#C8922A",
   "orientation": "portrait-primary",
   "icons": [
-    { "src": "/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    {
+      "src": "/pwa/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ],
   "screenshots": [
-    { "src": "/hero.jpg", "sizes": "1920x1080", "type": "image/jpeg", "form_factor": "wide" }
+    {
+      "src": "/hero.jpg",
+      "sizes": "1920x1080",
+      "type": "image/jpeg",
+      "form_factor": "wide"
+    }
   ],
   "shortcuts": [
-    { "name": "Shop All", "url": "/products", "description": "Browse all products" },
-    { "name": "Hunting",  "url": "/collections/hunting", "description": "Hunting apparel" },
-    { "name": "2A Patriot", "url": "/collections/2a-patriot", "description": "2A & Patriot designs" }
+    {
+      "name": "Shop All",
+      "url": "/products",
+      "description": "Browse all products"
+    },
+    {
+      "name": "Hunting",
+      "url": "/collections/hunting",
+      "description": "Hunting apparel"
+    },
+    {
+      "name": "2A Patriot",
+      "url": "/collections/2a-patriot",
+      "description": "2A & Patriot designs"
+    },
+    {
+      "name": "Store Admin",
+      "url": "/admin-app/",
+      "description": "Shop operations & SMS alerts"
+    }
   ],
-  "categories": ["shopping", "lifestyle"],
+  "categories": [
+    "shopping",
+    "lifestyle"
+  ],
   "lang": "en-US"
 }
