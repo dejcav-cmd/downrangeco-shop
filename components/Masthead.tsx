@@ -8,7 +8,7 @@ import SearchBar from "@/components/SearchBar";
 
 // ── Shop nav — same visual structure as portal, shop-specific links ──
 const NAV = [
-  { label: "Shop All",       href: "/products",                  exact: false },
+  { label: "Home",           href: "/",                          exact: true  },
   {
     label: "Hunting",        href: "/collections/hunting",
     children: [

@@ -156,7 +156,7 @@ export default function Hero() {
           {cur.subtitle}
         </p>
 
-        <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginBottom:20, alignItems:"center", maxWidth:640 }}>
+        <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginBottom:20, alignItems:"center", width:"100%", maxWidth:600 }}>
           <a href={cur.cta_primary_url ?? "/products"}
             style={{ background:"#C8922A", color:"#09090B", fontFamily:"var(--font-mono)", fontSize:12, fontWeight:600, letterSpacing:"0.12em", textTransform:"uppercase", padding:"14px 30px", textDecoration:"none", display:"inline-block", transition:"background 0.2s, transform 0.1s" }}
             onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="#E5A83A";(e.currentTarget as HTMLElement).style.transform="translateY(-1px)"}}
