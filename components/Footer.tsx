@@ -9,7 +9,7 @@ const PLATFORM_LABELS: Record<string,string> = {
 
 export default function Footer() {
   const year = new Date().getFullYear();
-  const [connectLinks, setConnectLinks] = useState<{label:string;href:string}[]>([]);
+  const [connectLinks, setConnectLinks] = useState<{label:string;href:string}[]>([{label:"📡 News Portal",href:"https://downrangeco.com"}]);
 
   useEffect(() => {
     fetch(`/api/social/config?t=${Date.now()}`, {

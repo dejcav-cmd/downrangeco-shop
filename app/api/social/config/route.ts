@@ -2,103 +2,80 @@ import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 const ADMIN_KEY  = process.env.ADMIN_KEY ?? "drco-admin-2026";
-const CONFIG_KEY = "drshop:social:config";
+const KEY        = "drshop:social:v1";
 
-// Use the exact same KV pattern as opsLogger which is proven to work
-async function kvGet(key: string): Promise<any> {
+async function kv(path: string, body?: any) {
   const url   = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) return null;
-  try {
-    const r = await fetch(`${url}/get/${key}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    });
-    return r.ok ? r.json() : null;
-  } catch { return null; }
+  const res = await fetch(`${url}${path}`, {
+    method: body !== undefined ? "POST" : "GET",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+    cache: "no-store",
+  });
+  return res.ok ? res.json() : null;
 }
 
-async function kvSet(key: string, value: string): Promise<boolean> {
-  const url   = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return false;
-  try {
-    const r = await fetch(`${url}/set/${key}`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ value }),
-      cache: "no-store",
-    });
-    if (!r.ok) {
-      const txt = await r.text();
-      console.error("[social/config] kvSet failed:", r.status, txt.slice(0, 200));
-    }
-    return r.ok;
-  } catch (e: any) {
-    console.error("[social/config] kvSet exception:", e.message);
-    return false;
-  }
+async function read() {
+  const d = await kv(`/get/${KEY}`);
+  if (!d?.result) return {};
+  try { return JSON.parse(d.result); } catch { return {}; }
 }
 
-const LABELS: Record<string, string> = {
-  twitter:   "𝕏 X / Twitter",
-  bluesky:   "🦋 Bluesky",
-  youtube:   "▶ YouTube",
-  facebook:  "f Facebook",
-  instagram: "◈ Instagram",
-  threads:   "@ Threads",
-  reddit:    "🔴 Reddit",
+async function write(data: any): Promise<boolean> {
+  const r = await kv(`/set/${KEY}`, { value: JSON.stringify(data) });
+  return r !== null;
+}
+
+const LABELS: Record<string,string> = {
+  twitter:"𝕏 X / Twitter", bluesky:"🦋 Bluesky", youtube:"▶ YouTube",
+  facebook:"f Facebook", instagram:"◈ Instagram", threads:"@ Threads", reddit:"🔴 Reddit",
 };
 
-// ── GET ──────────────────────────────────────────────────────────────
-// Public (no auth): returns { active: [{key,label,href}] } for footer
-// Admin (x-admin-key): returns { ok, config, configured }
+// Public GET — returns active links for footer (no auth needed)
+// Admin GET (x-admin-key) — returns full stored config
 export async function GET(req: NextRequest) {
   const isAdmin = req.headers.get("x-admin-key") === ADMIN_KEY;
-
-  const data   = await kvGet(CONFIG_KEY);
-  const config = data?.result ? (() => { try { return JSON.parse(data.result); } catch { return {}; } })() : {};
+  const config  = await read();
 
   if (!isAdmin) {
-    const links   = config.socialLinks   || {};
-    const enabled = config.socialEnabled || {};
-    const active  = Object.entries(LABELS)
-      .filter(([key]) => enabled[key] && links[key])
-      .map(([key, label]) => ({ key, label, href: links[key] }));
-    return NextResponse.json({ active }, { headers: { "Cache-Control": "no-store" } });
+    const links   = config.links   || {};
+    const enabled = config.enabled || {};
+    const active  = Object.keys(LABELS)
+      .filter(k => enabled[k] && links[k])
+      .map(k => ({ key: k, label: LABELS[k], href: links[k] }));
+    return NextResponse.json({ active }, { headers: { "Cache-Control": "no-store, no-cache" } });
   }
 
-  const configured = {
-    twitter:   !!(process.env.ZERNIO_API_KEY),
-    bluesky:   !!(process.env.BLUESKY_HANDLE && process.env.BLUESKY_APP_PASSWORD),
-    facebook:  !!(process.env.FACEBOOK_PAGE_ACCESS_TOKEN),
-    threads:   !!(process.env.THREADS_ACCESS_TOKEN),
-    reddit:    !!(process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET),
-    instagram: !!(process.env.INSTAGRAM_ACCESS_TOKEN),
-  };
-  return NextResponse.json(
-    { ok: true, config, configured, debug: { hasResult: !!data?.result, configKeys: Object.keys(config) } },
-    { headers: { "Cache-Control": "no-store" } }
-  );
+  return NextResponse.json({
+    ok: true,
+    links:   config.links   || {},
+    enabled: config.enabled || {},
+  }, { headers: { "Cache-Control": "no-store" } });
 }
 
-// ── POST ─────────────────────────────────────────────────────────────
+// POST — saves links + enabled map, returns the full saved state so UI can verify
 export async function POST(req: NextRequest) {
   if (req.headers.get("x-admin-key") !== ADMIN_KEY)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
+  const existing = await read();
+  const next = {
+    ...existing,
+    links:   body.links   ?? existing.links   ?? {},
+    enabled: body.enabled ?? existing.enabled ?? {},
+  };
+  const saved = await write(next);
 
-  // Read existing, merge, write back
-  const existing = await kvGet(CONFIG_KEY);
-  const current  = existing?.result
-    ? (() => { try { return JSON.parse(existing.result); } catch { return {}; } })()
-    : {};
+  // Re-read from Redis to confirm what was actually stored
+  const verified = await read();
 
-  const merged = { ...current, ...body };
-  const saved  = await kvSet(CONFIG_KEY, JSON.stringify(merged));
-
-  console.log("[social/config] POST — saved:", saved, "keys:", Object.keys(merged));
-
-  return NextResponse.json({ ok: saved, config: merged });
+  return NextResponse.json({
+    ok: saved,
+    links:   verified.links   || {},
+    enabled: verified.enabled || {},
+    savedToRedis: saved,
+  });
 }
