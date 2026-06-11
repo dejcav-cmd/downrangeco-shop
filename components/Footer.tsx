@@ -12,10 +12,12 @@ export default function Footer() {
   const [connectLinks, setConnectLinks] = useState<{label:string;href:string}[]>([]);
 
   useEffect(() => {
-    fetch("/api/social/config", { cache: "no-store" })
+    fetch(`/api/social/config?t=${Date.now()}`, {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache" },
+    })
       .then(r => r.json())
       .then(d => {
-        // Public endpoint returns { active: [{key,label,href}] }
         const active = d.active || [];
         const built: {label:string;href:string}[] = [
           { label:"📡 News Portal", href:"https://downrangeco.com" },
@@ -24,9 +26,7 @@ export default function Footer() {
         setConnectLinks(built);
       })
       .catch(() => {
-        setConnectLinks([
-          { label:"📡 News Portal", href:"https://downrangeco.com" },
-        ]);
+        setConnectLinks([{ label:"📡 News Portal", href:"https://downrangeco.com" }]);
       });
   }, []);
 
