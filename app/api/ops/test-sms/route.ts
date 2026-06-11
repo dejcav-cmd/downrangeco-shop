@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendSMSAlert, writeLog } from "@/lib/opsLogger";
 export const dynamic = "force-dynamic";
 
-const ADMIN_KEY = process.env.ADMIN_KEY ?? "drco-admin-2026";
+const ADMIN_KEY = process.env.ADMIN_KEY ?? "bc081ac920174e0ca49d7f95518a9ce5f8c8d744";
 
 // Simple hash to verify key without exposing it
 function hashKey(k: string) {

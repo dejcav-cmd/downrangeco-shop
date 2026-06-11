@@ -3,7 +3,7 @@ import { readdir, stat } from "fs/promises";
 import { join } from "path";
 
 export const dynamic = "force-dynamic";
-const ADMIN_KEY = process.env.ADMIN_KEY ?? "drco-admin-2026";
+const ADMIN_KEY = process.env.ADMIN_KEY ?? "bc081ac920174e0ca49d7f95518a9ce5f8c8d744";
 
 export async function GET(req: NextRequest) {
   if (req.headers.get("x-admin-key") !== ADMIN_KEY)

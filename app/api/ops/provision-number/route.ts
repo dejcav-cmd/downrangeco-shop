@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeLog, sendSMSAlert } from "@/lib/opsLogger";
 export const dynamic = "force-dynamic";
 
-const ADMIN_KEY = process.env.ADMIN_KEY ?? "drco-admin-2026";
+const ADMIN_KEY = process.env.ADMIN_KEY ?? "bc081ac920174e0ca49d7f95518a9ce5f8c8d744";
 const SID       = process.env.TWILIO_ACCOUNT_SID!;
 const API_KEY   = process.env.TWILIO_API_KEY;
 const API_SEC   = process.env.TWILIO_API_SECRET;

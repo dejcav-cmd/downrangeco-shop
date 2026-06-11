@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
-const ADMIN_KEY  = process.env.ADMIN_KEY ?? "drco-admin-2026";
-const ADMIN_KEY2 = "drco-admin-2026"; // fallback
+const ADMIN_KEY  = process.env.ADMIN_KEY ?? "bc081ac920174e0ca49d7f95518a9ce5f8c8d744";
+const ADMIN_KEY2 = "bc081ac920174e0ca49d7f95518a9ce5f8c8d744"; // fallback
 
 export async function GET(req: NextRequest) {
   const isAuth = req.headers.get("x-admin-key") === ADMIN_KEY || req.headers.get("x-admin-key") === ADMIN_KEY2 ||

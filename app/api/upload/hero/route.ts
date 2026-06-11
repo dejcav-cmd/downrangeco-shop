@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 // Vercel Pro body size limit is 4.5MB — we enforce 4MB to be safe
 const MAX_BYTES = 4 * 1024 * 1024;
 
-const ADMIN_KEY = process.env.ADMIN_KEY ?? "drco-admin-2026";
+const ADMIN_KEY = process.env.ADMIN_KEY ?? "bc081ac920174e0ca49d7f95518a9ce5f8c8d744";
 const GH_TOKEN  = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN ?? "";
 const GH_REPO   = "dejcav-cmd/downrangeco-shop";
 const GH_BRANCH = "main";

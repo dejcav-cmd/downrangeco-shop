@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
-const ADMIN_KEY  = process.env.ADMIN_KEY ?? "drco-admin-2026";
+const ADMIN_KEY  = process.env.ADMIN_KEY ?? "bc081ac920174e0ca49d7f95518a9ce5f8c8d744";
 const KEY        = "drshop:social:v1";
 
 async function kv(path: string, body?: any) {
