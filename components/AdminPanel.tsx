@@ -1252,14 +1252,18 @@ function OpsTab({ adminKey }: { adminKey: string }) {
   }
 
   function fmtAge(ts:string) {
-    const m = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
+    const d = new Date(ts);
+    if (!ts || isNaN(d.getTime())) return "—";
+    const m = Math.floor((Date.now() - d.getTime()) / 60000);
     if (m < 1)    return "just now";
     if (m < 60)   return `${m}m ago`;
     if (m < 1440) return `${Math.floor(m/60)}h ago`;
     return `${Math.floor(m/1440)}d ago`;
   }
   function fmtTime(ts:string) {
-    return new Date(ts).toLocaleString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false});
+    const d = new Date(ts);
+    if (!ts || isNaN(d.getTime())) return "—";
+    return d.toLocaleString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false});
   }
 
   // Mini sparkline
@@ -1568,8 +1572,8 @@ function OpsTab({ adminKey }: { adminKey: string }) {
               onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.filter="none"}}
             >
               <div style={{...mono(8),color:S.muted,lineHeight:1.5}}>
-                {new Date(log.ts).toLocaleTimeString()}<br/>
-                <span style={{opacity:.5}}>{new Date(log.ts).toLocaleDateString()}</span>
+                {isNaN(new Date(log.ts).getTime()) ? "—" : new Date(log.ts).toLocaleTimeString()}<br/>
+                <span style={{opacity:.5}}>{isNaN(new Date(log.ts).getTime()) ? "" : new Date(log.ts).toLocaleDateString()}</span>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:4}}>
                 <span style={{...mono(9),color:lc(log.level)}}>{li(log.level)}</span>

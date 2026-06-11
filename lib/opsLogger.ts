@@ -17,16 +17,28 @@ export interface OpsLog {
 }
 
 async function kv(path: string, body?: any): Promise<any> {
-  if (!KV_URL || !KV_TOKEN) return null;
+  const url   = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return null;
   try {
-    const res = await fetch(`${KV_URL}${path}`, {
-      method:  body !== undefined ? "POST" : "GET",
-      headers: { Authorization: `Bearer ${KV_TOKEN}`, "Content-Type": "application/json" },
-      body:    body !== undefined ? JSON.stringify(body) : undefined,
+    // Upstash REST API: GET for reads (lrange, get), POST for writes (lpush, ltrim, del)
+    const isWrite = body !== undefined;
+    const res = await fetch(`${url}${path}`, {
+      method:  isWrite ? "POST" : "GET",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body:    isWrite ? JSON.stringify(body) : undefined,
       cache:   "no-store",
     });
-    return res.ok ? res.json() : null;
-  } catch { return null; }
+    if (!res.ok) {
+      const err = await res.text().catch(() => "");
+      console.error(`[opsLogger] KV error ${res.status} at ${path}: ${err.slice(0, 100)}`);
+      return null;
+    }
+    return res.json();
+  } catch (e: any) {
+    console.error(`[opsLogger] KV exception at ${path}:`, e.message);
+    return null;
+  }
 }
 
 // ── Write ────────────────────────────────────────────────────────────
@@ -37,8 +49,8 @@ export async function writeLog(entry: Omit<OpsLog, "id" | "ts">): Promise<void> 
     ...entry,
   };
   try {
-    await kv(`/lpush/${LOG_KEY}`, { value: JSON.stringify(log) });
-    await kv(`/ltrim/${LOG_KEY}`, { start: 0, stop: MAX_LOGS - 1 });
+    await kv(`/lpush/${LOG_KEY}`, [JSON.stringify(log)]);
+    await kv(`/ltrim/${LOG_KEY}/0/${MAX_LOGS - 1}`, {});
   } catch { /* logging must never crash a job */ }
 }
 
@@ -55,7 +67,7 @@ export async function readLogs(count = 200): Promise<OpsLog[]> {
 
 // ── Clear ────────────────────────────────────────────────────────────
 export async function clearLogs(): Promise<void> {
-  await kv(`/del/${LOG_KEY}`, {});
+  await kv(`/del/${LOG_KEY}`, []);
 }
 
 // ── Stats ─────────────────────────────────────────────────────────────

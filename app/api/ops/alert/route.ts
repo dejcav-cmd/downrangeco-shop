@@ -10,7 +10,9 @@ function auth(req: NextRequest) {
 export async function GET(req: NextRequest) {
   if (!auth(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const count = parseInt(req.nextUrl.searchParams.get("count") ?? "200");
-  const [logs, stats] = await Promise.all([readLogs(count), getStats()]);
+  const [rawLogs, stats] = await Promise.all([readLogs(count), getStats()]);
+  // Filter out malformed entries (bad timestamps from old lpush format)
+  const logs = rawLogs.filter(l => l.ts && !isNaN(new Date(l.ts).getTime()));
   return NextResponse.json({ logs, stats, ts: new Date().toISOString() });
 }
 
