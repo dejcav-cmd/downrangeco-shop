@@ -246,7 +246,11 @@ export default function ProductDetail({ product }: { product: ShopifyProduct }) 
             <div>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--muted)", marginBottom: "12px", display: "flex", justifyContent: "space-between" }}>
                 <span>Size — <span style={{ color: "var(--text)" }}>{selectedSize}</span></span>
-                <span style={{ color: "var(--gold)", cursor: "pointer", fontSize: "9px" }}>Size Guide</span>
+                <a href="/pages/sizing-guide" style={{ color: "var(--gold)", fontSize: "9px", textDecoration: "none", fontFamily: "var(--font-mono)", letterSpacing: "0.1em", textTransform: "uppercase" }}
+                  onMouseEnter={e => ((e.target as HTMLElement).style.textDecoration = "underline")}
+                  onMouseLeave={e => ((e.target as HTMLElement).style.textDecoration = "none")}>
+                  Size Guide ↗
+                </a>
               </div>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 {availableSizes.map((size) => {
