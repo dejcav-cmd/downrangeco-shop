@@ -8,7 +8,7 @@ const categories = [
     sub: "Rifle • Bow • Waterfowl • Turkey",
     description:
       "From bull elk at first light to late-season whitetail. Gear that wears as hard as the field you hunt.",
-    href: "/products?category=Hunting",
+    href: "/collections/hunting",
     accent: "#2a3a2a",
     icon: (
       <svg
@@ -55,7 +55,7 @@ const categories = [
     sub: "Second Amendment • Constitutional • Firearms",
     description:
       "Shall not be infringed. Apparel for those who understand what the Second Amendment actually means.",
-    href: "/products?category=2A+%2F+Patriot",
+    href: "/collections/2a-patriot",
     accent: "#1a1a2e",
     icon: (
       <svg
@@ -82,7 +82,7 @@ const categories = [
     sub: "Army • Marines • Navy • Air Force • Veterans",
     description:
       "For those who served and those who stand with them. Worn with pride, made to last.",
-    href: "/products?category=Military+%2F+Vet",
+    href: "/collections/military-vet",
     accent: "#2e2220",
     icon: (
       <svg
@@ -112,7 +112,7 @@ const categories = [
     sub: "Precision • Milradian • Sniper • Rimfire",
     description:
       "MRAD not MOA. For those who dope their turrets and know what come-ups mean.",
-    href: "/products?category=Long+Range",
+    href: "/collections/long-range",
     accent: "#1a1916",
     icon: (
       <svg

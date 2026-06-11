@@ -24,6 +24,7 @@ export default function Nav() {
           { label: "Hunting",        href: "/products?category=Hunting" },
           { label: "2A / Patriot",   href: "/products?category=2A+%2F+Patriot" },
           { label: "Military / Vet", href: "/products?category=Military+%2F+Vet" },
+          { label: "Our Story",     href: "/about" },
         ].map((link) => (
           <li key={link.label}>
             <a href={link.href} style={{ fontFamily: "var(--font-mono)", fontSize: "11px", fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--muted)", textDecoration: "none", transition: "color 0.2s" }}
