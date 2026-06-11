@@ -89,9 +89,11 @@ export default function Masthead() {
         .ndi-label { font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:700; color:#E5E5E5; letter-spacing:0.04em; display:block; }
         .ndi-desc  { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6B7280; display:block; margin-top:1px; }
         .nav-item-wrap { position:relative; }
-        .nav-top-link { display:flex; align-items:center; gap:4px; font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; padding:13px 14px; white-space:nowrap; text-decoration:none; border-bottom:2px solid transparent; transition:color 0.15s, border-color 0.15s; color:#C8922A; }
-        .nav-top-link:hover { color:#6B7280; }
-        .nav-top-link.active { border-bottom-color:#C8922A; color:#C8922A; }
+        .nav-top-link { display:flex; align-items:center; gap:4px; font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; padding:13px 14px; white-space:nowrap; text-decoration:none; border-bottom:2px solid transparent; transition:color 0.15s, border-color 0.15s; color:#9CA3AF; }
+        .nav-top-link:hover { color:#fff; }
+        .nav-top-link.active { border-bottom-color:#C8922A; color:#E5E5E5; }
+        .nav-top-link.our-story { color:#C8922A; }
+        .nav-top-link.our-story:hover { color:#6B7280; }
         .masthead-logo { display:block; height:auto; max-height:72px; width:auto; max-width:100%; }
         @media(max-width:900px) { .nav-desktop{display:none!important} .nav-mob-bar{display:flex!important} .masthead-dateline{display:none!important} }
         @media(min-width:901px) { .nav-mob-bar{display:none!important} }
