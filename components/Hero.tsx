@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface HeroSlide {
   id: string; image: string;
@@ -22,72 +22,76 @@ const DEFAULT_SLIDES: HeroSlide[] = [
   },
 ];
 
-const INTERVAL = 10000; // 10s per slide
-const FADE_MS  = 1200;  // crossfade duration
+const INTERVAL = 10000; // 10s
+const FADE_MS  = 1200;  // crossfade
 
 export default function Hero() {
   const [slides,  setSlides]  = useState<HeroSlide[]>(DEFAULT_SLIDES);
   const [current, setCurrent] = useState(0);
-  const [prev,    setPrev]    = useState<number | null>(null);
-  const [fading,  setFading]  = useState(false);
+  const [visible, setVisible] = useState(0);   // which image is fully opaque
   const [paused,  setPaused]  = useState(false);
   const [bar,     setBar]     = useState(0);
-  const barRef    = useRef(0);
-  const fadingRef = useRef(false);
 
+  // Refs that are always current — no stale closures in intervals
+  const currentRef = useRef(0);
+  const slidesRef  = useRef<HeroSlide[]>(DEFAULT_SLIDES);
+  const pausedRef  = useRef(false);
+  const fadingRef  = useRef(false);
+  const barRef     = useRef(0);
+
+  useEffect(() => { slidesRef.current = slides; }, [slides]);
+  useEffect(() => { pausedRef.current = paused; }, [paused]);
+
+  // Load slides
   useEffect(() => {
     fetch("/api/hero", { cache: "no-store" })
       .then(r => r.json())
-      .then(d => { if (d.slides?.length) setSlides(d.slides); })
+      .then(d => { if (d.slides?.length) { setSlides(d.slides); slidesRef.current = d.slides; } })
       .catch(() => {});
   }, []);
 
-  // Navigate to a specific slide — stacks old image underneath new one and crossfades
-  const goTo = useCallback((nextIdx: number) => {
+  // Navigate — works from anywhere, no stale state
+  function goTo(idx: number) {
     if (fadingRef.current) return;
-    setCurrent(c => {
-      if (c === nextIdx) return c;
-      setPrev(c);           // keep old image rendered underneath
-      setFading(true);
-      fadingRef.current = true;
-      setBar(0);
-      barRef.current = 0;
-      setTimeout(() => {
-        setPrev(null);       // remove old image after fade completes
-        setFading(false);
-        fadingRef.current = false;
-      }, FADE_MS);
-      return nextIdx;
-    });
-  }, []);
+    if (idx === currentRef.current) return;
+    fadingRef.current = true;
 
-  // Auto-advance
-  useEffect(() => {
-    if (slides.length <= 1 || paused) return;
+    // Show new image on top (opacity 0), keep old fully visible
+    setCurrent(idx);
+    currentRef.current = idx;
     barRef.current = 0;
     setBar(0);
 
+    // After fade completes, mark new as fully visible
+    setTimeout(() => {
+      setVisible(idx);
+      fadingRef.current = false;
+    }, FADE_MS);
+  }
+
+  // Auto-advance + progress bar
+  useEffect(() => {
+    if (slides.length <= 1) return;
+
     const barTimer = setInterval(() => {
-      if (fadingRef.current) return; // don't advance bar during fade
-      barRef.current += 100 / (INTERVAL / 16.67);
-      setBar(Math.min(barRef.current, 100));
+      if (pausedRef.current || fadingRef.current) return;
+      barRef.current = Math.min(barRef.current + (100 / (INTERVAL / 16.67)), 100);
+      setBar(barRef.current);
     }, 16.67);
 
     const slideTimer = setInterval(() => {
-      setCurrent(c => {
-        const n = (c + 1) % slides.length;
-        goTo(n);
-        return c;
-      });
+      if (pausedRef.current || fadingRef.current) return;
+      const next = (currentRef.current + 1) % slidesRef.current.length;
+      goTo(next);
     }, INTERVAL);
 
     return () => { clearInterval(barTimer); clearInterval(slideTimer); };
-  }, [slides.length, paused, goTo]);
+  }, [slides.length]); // only re-run if slide count changes
 
-  const slide     = slides[current];
-  const prevSlide = prev !== null ? slides[prev] : null;
-  const ov        = (slide.overlay_opacity ?? 85) / 100;
-  const lines     = [slide.title_line1, slide.title_line2, slide.title_line3, slide.title_line4].filter(Boolean) as string[];
+  const cur  = slides[current]  ?? slides[0];
+  const vis  = slides[visible]  ?? slides[0];
+  const ov   = (cur.overlay_opacity ?? 85) / 100;
+  const lines = [cur.title_line1, cur.title_line2, cur.title_line3, cur.title_line4].filter(Boolean) as string[];
 
   return (
     <section
@@ -95,27 +99,26 @@ export default function Hero() {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* ── Image layer: prev image stays visible underneath ── */}
-      {prevSlide && (
-        <div style={{
-          position:"absolute", inset:0, zIndex:0,
-          backgroundImage:`url('${prevSlide.image}')`,
-          backgroundSize:"cover", backgroundPosition:"center 30%",
+      {/* All images stacked — only current fades in, visible stays opaque underneath */}
+      {slides.map((s, i) => (
+        <div key={s.id} style={{
+          position:    "absolute", inset:0,
+          backgroundImage: `url('${s.image}')`,
+          backgroundSize: "cover", backgroundPosition: "center 30%",
+          zIndex: i === current ? 2 : i === visible ? 1 : 0,
+          opacity:
+            i === current && i !== visible ? 0   :  // new: start invisible, fade in
+            i === visible                   ? 1   :  // old: stays opaque until fade done
+            0,                                       // others: hidden
+          transition: i === current && i !== visible
+            ? `opacity ${FADE_MS}ms ease`            // fade in
+            : "none",                                // snap for others
         }} />
-      )}
+      ))}
 
-      {/* ── Current image fades IN on top ── */}
+      {/* Overlay */}
       <div style={{
-        position:"absolute", inset:0, zIndex:1,
-        backgroundImage:`url('${slide.image}')`,
-        backgroundSize:"cover", backgroundPosition:"center 30%",
-        opacity: fading ? 0 : 1,
-        transition: fading ? "none" : `opacity ${FADE_MS}ms ease`,
-      }} />
-
-      {/* ── Overlay (sits above both images) ── */}
-      <div style={{
-        position:"absolute", inset:0, zIndex:2,
+        position:"absolute", inset:0, zIndex:3,
         background:`
           linear-gradient(to right, rgba(9,9,11,${ov}) 0%, rgba(9,9,11,${ov*0.65}) 60%, rgba(9,9,11,${ov*0.2}) 100%),
           repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(255,255,255,0.012) 40px),
@@ -123,9 +126,9 @@ export default function Hero() {
         `,
       }} />
 
-      {/* ── Reticle ── */}
+      {/* Reticle */}
       <svg viewBox="0 0 260 260" fill="none" xmlns="http://www.w3.org/2000/svg"
-        style={{ position:"absolute", right:"8%", top:"50%", transform:"translate(50%,-50%)", width:260, height:260, opacity:0.07, pointerEvents:"none", zIndex:3 }}>
+        style={{ position:"absolute", right:"8%", top:"50%", transform:"translate(50%,-50%)", width:260, height:260, opacity:0.07, pointerEvents:"none", zIndex:4 }}>
         <circle cx="130" cy="130" r="120" stroke="#C8922A" strokeWidth="1"/>
         <circle cx="130" cy="130" r="65"  stroke="#C8922A" strokeWidth="0.8"/>
         <circle cx="130" cy="130" r="12"  stroke="#C8922A" strokeWidth="1"/>
@@ -138,57 +141,50 @@ export default function Hero() {
         <circle cx="130" cy="130" r="3" fill="#C8922A"/>
       </svg>
 
-      {/* ── Content ── */}
-      <div style={{
-        position:"relative", zIndex:4, padding:"0 48px", maxWidth:700,
-        opacity: fading ? 0 : 1,
-        transition: `opacity ${FADE_MS * 0.6}ms ease`,
-      }}>
+      {/* Content */}
+      <div style={{ position:"relative", zIndex:5, padding:"0 48px", maxWidth:700 }}>
         <h1 style={{ fontFamily:"var(--font-bebas)", fontSize:"clamp(64px,10vw,100px)", lineHeight:0.88, letterSpacing:"0.03em", color:"#F0EDE8", marginBottom:22 }}>
           {lines.map((line, i) => (
             <span key={i}>
-              {line === slide.accent_word
-                ? <span style={{ color:"#C8922A" }}>{line}</span>
-                : line}
+              {line === cur.accent_word ? <span style={{ color:"#C8922A" }}>{line}</span> : line}
               {i < lines.length - 1 && <br />}
             </span>
           ))}
         </h1>
 
         <p style={{ fontSize:15, color:"rgba(240,237,232,0.82)", maxWidth:420, lineHeight:1.65, marginBottom:32, fontWeight:300 }}>
-          {slide.subtitle}
+          {cur.subtitle}
         </p>
 
-        {/* CTA row + inline slide nav */}
-        <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginBottom:20, alignItems:"center", justifyContent:"space-between", maxWidth:640 }}>
-          <a href={slide.cta_primary_url ?? "/products"}
+        <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginBottom:20, alignItems:"center", maxWidth:640 }}>
+          <a href={cur.cta_primary_url ?? "/products"}
             style={{ background:"#C8922A", color:"#09090B", fontFamily:"var(--font-mono)", fontSize:12, fontWeight:600, letterSpacing:"0.12em", textTransform:"uppercase", padding:"14px 30px", textDecoration:"none", display:"inline-block", transition:"background 0.2s, transform 0.1s" }}
             onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="#E5A83A";(e.currentTarget as HTMLElement).style.transform="translateY(-1px)"}}
             onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background="#C8922A";(e.currentTarget as HTMLElement).style.transform="none"}}>
-            {slide.cta_primary}
+            {cur.cta_primary}
           </a>
           <a href="#categories"
             style={{ background:"transparent", color:"#F0EDE8", fontFamily:"var(--font-mono)", fontSize:12, fontWeight:500, letterSpacing:"0.12em", textTransform:"uppercase", padding:"13px 30px", border:"1px solid rgba(255,255,255,0.35)", textDecoration:"none", display:"inline-block", transition:"border-color 0.2s, color 0.2s" }}
             onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.borderColor="rgba(200,146,42,0.5)";(e.currentTarget as HTMLElement).style.color="#C8922A"}}
             onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.35)";(e.currentTarget as HTMLElement).style.color="#F0EDE8"}}>
-            {slide.cta_secondary}
+            {cur.cta_secondary}
           </a>
 
           {slides.length > 1 && (
             <div style={{ display:"flex", gap:6, alignItems:"center", marginLeft:"auto" }}>
-              <button onClick={()=>goTo((current-1+slides.length)%slides.length)}
-                style={{ width:30,height:30,background:"rgba(0,0,0,0.45)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,transition:"all 0.15s",flexShrink:0 }}
+              <button onClick={() => goTo((current - 1 + slides.length) % slides.length)}
+                style={{ width:30,height:30,background:"rgba(0,0,0,0.45)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,transition:"all 0.15s" }}
                 onMouseEnter={e=>(e.currentTarget as HTMLElement).style.borderColor="#C8922A"}
                 onMouseLeave={e=>(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.15)"}>
                 ‹
               </button>
               {slides.map((s, i) => (
                 <button key={s.id} onClick={() => goTo(i)}
-                  style={{ width:i===current?24:8, height:8, borderRadius:4, background:i===current?"#C8922A":"rgba(255,255,255,0.3)", border:"none", cursor:"pointer", padding:0, transition:"all 0.3s ease", flexShrink:0 }}
+                  style={{ width:i===current?24:8, height:8, borderRadius:4, background:i===current?"#C8922A":"rgba(255,255,255,0.3)", border:"none", cursor:"pointer", padding:0, transition:"all 0.3s ease" }}
                 />
               ))}
-              <button onClick={()=>goTo((current+1)%slides.length)}
-                style={{ width:30,height:30,background:"rgba(0,0,0,0.45)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,transition:"all 0.15s",flexShrink:0 }}
+              <button onClick={() => goTo((current + 1) % slides.length)}
+                style={{ width:30,height:30,background:"rgba(0,0,0,0.45)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,transition:"all 0.15s" }}
                 onMouseEnter={e=>(e.currentTarget as HTMLElement).style.borderColor="#C8922A"}
                 onMouseLeave={e=>(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.15)"}>
                 ›
@@ -199,18 +195,16 @@ export default function Hero() {
 
         <div style={{ fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"0.20em", textTransform:"uppercase", color:"rgba(200,146,42,0.65)", display:"flex", alignItems:"center", gap:10 }}>
           <span style={{ display:"inline-block", width:24, height:1, background:"rgba(200,146,42,0.65)" }}/>
-          {slide.eyebrow}
+          {cur.eyebrow}
         </div>
       </div>
 
-      {/* ── Progress bar ── */}
+      {/* Progress bar */}
       {slides.length > 1 && (
-        <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:5, height:2, background:"rgba(255,255,255,0.08)" }}>
+        <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:6, height:2, background:"rgba(255,255,255,0.08)" }}>
           <div style={{ height:"100%", background:"#C8922A", width:`${bar}%`, transition:paused?"none":"width 0.1s linear" }}/>
         </div>
       )}
-
-      <style>{`@media(max-width:768px){section>div[style*="padding: 0 48px"]{padding:0 24px!important}}`}</style>
     </section>
   );
 }
