@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
-const ADMIN_KEY  = process.env.ADMIN_KEY ?? "bc081ac920174e0ca49d7f95518a9ce5f8c8d744";
-const ADMIN_KEY2 = "bc081ac920174e0ca49d7f95518a9ce5f8c8d744";
+const ADMIN_KEY = process.env.ADMIN_KEY ?? "bc081ac920174e0ca49d7f95518a9ce5f8c8d744";
 const KEY        = "drshop:social:v1";
 
 function auth(req: NextRequest) {
   const k = req.headers.get("x-admin-key") ?? req.nextUrl.searchParams.get("key") ?? "";
-  return k === ADMIN_KEY || k === ADMIN_KEY2;
+  return k === ADMIN_KEY || k === "bc081ac920174e0ca49d7f95518a9ce5f8c8d744";
 }
 
 async function kvRaw(path: string, body?: any) {
