@@ -123,7 +123,7 @@ export default function Masthead() {
                 📡 NEWS PORTAL
               </a>
               <span style={{ background:"#C8922A", color:"#09090B", fontFamily:"'Barlow Condensed',sans-serif", fontSize:"10px", fontWeight:700, letterSpacing:"0.15em", padding:"3px 10px" }}>
-                APPAREL
+                APPAREL STORE
               </span>
             </div>
             <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:"10px", color:"#6B7280", whiteSpace:"nowrap" }}>
