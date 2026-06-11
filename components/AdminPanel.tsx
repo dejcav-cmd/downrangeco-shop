@@ -18,6 +18,7 @@ const TABS = [
   { id:"storefront",  icon:"◉", label:"Storefront"  },
   { id:"store",       icon:"◈", label:"Store Info"  },
   { id:"pages",       icon:"◌", label:"Pages"      },
+  { id:"ops",         icon:"◎", label:"Operations" },
 ] as const;
 type TabId = typeof TABS[number]["id"];
 
@@ -121,6 +122,7 @@ export default function AdminPanel() {
           {tab==="storefront"  && <StorefrontTab  adminKey={key} showToast={showToast}/>}
           {tab==="store"       && <StoreInfoTab   apiFetch={apiFetch}/>}
           {tab==="pages"       && <PageEditor      adminKey={key} showToast={showToast}/>}
+          {tab==="ops"         && <OpsTab          adminKey={key}/>}
         </div>
       </div>
 
@@ -901,6 +903,141 @@ function PagesTab({adminKey,showToast}:any){
     </div>
   );
 }
+
+
+// ── Ops Tab ──────────────────────────────────────────────────────────
+function OpsTab({ adminKey }: { adminKey: string }) {
+  const [health,setHealth]=useState<any>(null);
+  const [logs,setLogs]=useState<any[]>([]);
+  const [stats,setStats]=useState<any>(null);
+  const [loading,setLoading]=useState(true);
+  const [trigger,setTrigger]=useState(false);
+  const [lastRefresh,setLR]=useState("");
+
+  const load=useCallback(async()=>{
+    setLoading(true);
+    try {
+      const [h,l]=await Promise.all([
+        fetch(`/api/ops/health?key=${adminKey}`,{cache:"no-store"}).then(r=>r.json()),
+        fetch(`/api/ops/alert?key=${adminKey}&count=200`,{cache:"no-store"}).then(r=>r.json()),
+      ]);
+      setHealth(h); setLogs(l.logs??[]); setStats(l.stats??{}); setLR(new Date().toLocaleTimeString());
+    } catch{}
+    finally{setLoading(false);}
+  },[adminKey]);
+
+  useEffect(()=>{load();const t=setInterval(load,30000);return()=>clearInterval(t);},[load]);
+
+  const runSync=async()=>{
+    setTrigger(true);
+    try{await fetch("/api/ops/sync-products",{headers:{"x-admin-key":adminKey}});await load();}
+    finally{setTrigger(false);}
+  };
+
+  const sc=(s:string)=>s==="ok"||s==="healthy"?S.greenText:s==="warn"||s==="partial"?"#e0a830":"#e08080";
+  const lc=(l:string):string=>({ok:S.greenText,info:"#9090e0",warn:"#e0a830",error:"#e08080",critical:"#ff4444"}[l]??S.muted);
+  const li=(l:string):string=>({ok:"✓",info:"◦",warn:"⚠",error:"✗",critical:"🚨"}[l]??"·");
+
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:24,flexWrap:"wrap",gap:12}}>
+        <div>
+          <div style={{fontFamily:"var(--font-bebas)",fontSize:38,letterSpacing:"0.04em"}}>
+            OPERATIONS <span style={{color:S.gold}}>CENTER</span>
+          </div>
+          <div style={{...mono(9),color:S.muted}}>Live monitoring · Auto-refreshes every 30s · Last: {lastRefresh}</div>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={runSync} disabled={trigger} style={{...mono(10),background:S.goldDim,border:`1px solid ${S.goldBorder}`,color:S.gold,padding:"8px 16px",cursor:"pointer"}}>
+            {trigger?"Syncing...":"⟳ Force Product Sync"}
+          </button>
+          <button onClick={load} style={{...mono(10),background:"transparent",border:`1px solid ${S.border}`,color:S.muted,padding:"8px 14px",cursor:"pointer"}}>Refresh</button>
+        </div>
+      </div>
+      {loading&&<LoadingBar/>}
+      {health&&(
+        <div style={{marginBottom:20}}>
+          <div style={{...mono(9),color:S.gold,marginBottom:10}}>// System Health</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(190px,1fr))",gap:8,marginBottom:16}}>
+            <div style={{background:S.card,border:`2px solid ${sc(health.status)}55`,padding:"16px 18px"}}>
+              <div style={{...mono(8),color:S.muted,marginBottom:4}}>Overall</div>
+              <div style={{fontFamily:"var(--font-bebas)",fontSize:24,color:sc(health.status),letterSpacing:"0.06em"}}>{health.status?.toUpperCase()}</div>
+              <div style={{...mono(8),color:S.muted,marginTop:4}}>v{health.version}</div>
+            </div>
+            {(health.checks??[]).map((c:any)=>(
+              <div key={c.name} style={{background:S.card,border:`1px solid ${sc(c.status)}33`,padding:"14px 16px"}}>
+                <div style={{...mono(8),color:S.muted,marginBottom:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.name}</div>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontFamily:"var(--font-bebas)",fontSize:18,color:sc(c.status)}}>{c.status?.toUpperCase()}</span>
+                  {c.latency&&<span style={{...mono(8),color:S.muted}}>{c.latency}ms</span>}
+                </div>
+                {c.detail&&<div style={{...mono(8),color:S.muted,marginTop:3,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.detail}</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {stats&&(
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:20}}>
+          {[["Total Events",stats.total,S.gold],["Errors",stats.errors,"#e08080"],["Warnings",stats.warnings,"#e0a830"],["Last Activity",stats.lastRun?new Date(stats.lastRun).toLocaleTimeString():"—",S.muted]].map(([l,v,c])=>(
+            <div key={l as string} style={{background:S.card,border:`1px solid ${S.border}`,padding:"14px 16px"}}>
+              <div style={{fontFamily:"var(--font-bebas)",fontSize:26,color:c as string,letterSpacing:"0.04em"}}>{v}</div>
+              <div style={{...mono(8),color:S.muted,marginTop:3}}>{l}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{marginBottom:20}}>
+        <div style={{...mono(9),color:S.gold,marginBottom:10}}>// Cron Schedule</div>
+        <div style={{border:`1px solid ${S.border}`}}>
+          {[["Product Sync","0 * * * * (hourly)","/api/ops/sync-products","Revalidates Next.js cache from Shopify/Printify"],["Health Check","*/15 * * * * (15min)","/api/ops/health","Checks all APIs, sends SMS on failure"]].map(([j,s,p,d],i)=>(
+            <div key={j} style={{display:"grid",gridTemplateColumns:"130px 200px 180px 1fr",padding:"10px 14px",background:S.card,borderTop:i>0?`1px solid ${S.border}`:"none",alignItems:"center",gap:8}}>
+              <div style={{fontFamily:"var(--font-bebas)",fontSize:14,letterSpacing:"0.06em",color:S.text}}>{j}</div>
+              <div style={{...mono(9),color:S.gold}}>{s}</div>
+              <div style={{...mono(9),color:S.muted}}>{p}</div>
+              <div style={{fontSize:12,color:S.muted}}>{d}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div style={{...mono(9),color:S.gold,marginBottom:10}}>// Operations Log ({logs.length} events)</div>
+        <div style={{border:`1px solid ${S.border}`,maxHeight:440,overflowY:"auto"}}>
+          <div style={{display:"grid",gridTemplateColumns:"160px 70px 110px 1fr",background:"#0d0d0f",padding:"7px 14px",borderBottom:`1px solid ${S.border}`,position:"sticky",top:0}}>
+            {["Time","Level","Job","Message"].map(h=><div key={h} style={{...mono(8),color:S.muted}}>{h}</div>)}
+          </div>
+          {logs.length===0&&!loading&&<div style={{...mono(10),color:S.muted,padding:"30px 0",textAlign:"center"}}>No logs yet. Run a sync or wait for cron.</div>}
+          {logs.map((log:any)=>(
+            <div key={log.id} style={{display:"grid",gridTemplateColumns:"160px 70px 110px 1fr",padding:"8px 14px",borderBottom:`1px solid ${S.border}`,background:S.card,alignItems:"start"}}
+              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background="#161618"}
+              onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=S.card}>
+              <div style={{...mono(9),color:S.muted}}>{new Date(log.ts).toLocaleTimeString()}</div>
+              <div style={{...mono(9),color:lc(log.level),fontWeight:600}}>{li(log.level)} {log.level?.slice(0,4)?.toUpperCase()}</div>
+              <div style={{...mono(9),color:"#9090e0"}}>{log.job}</div>
+              <div>
+                <div style={{fontSize:12,color:S.text}}>{log.message}</div>
+                {log.detail&&<div style={{fontSize:11,color:S.muted,marginTop:2,fontFamily:"monospace",wordBreak:"break-all"}}>{log.detail}</div>}
+                {log.duration&&<div style={{...mono(8),color:S.muted,marginTop:2}}>{log.duration}ms</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{marginTop:20,background:"rgba(200,146,42,0.06)",border:`1px solid rgba(200,146,42,0.2)`,padding:18}}>
+        <div style={{...mono(9),color:S.gold,marginBottom:10}}>// Env Vars needed for SMS alerts</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+          {[["TWILIO_ACCOUNT_SID","Twilio SID (ACxxx...)"],["TWILIO_AUTH_TOKEN","Twilio auth token"],["TWILIO_FROM_NUMBER","Your Twilio number (+1xxx)"],["ALERT_PHONE_NUMBER","Your cell (+1xxx)"],["CRON_SECRET","Cron auth (= ADMIN_KEY)"]].map(([k,v])=>(
+            <div key={k} style={{padding:"7px 10px",background:S.bg3,border:`1px solid ${S.border}`}}>
+              <div style={{fontFamily:"monospace",fontSize:11,color:S.gold}}>{k}</div>
+              <div style={{fontSize:11,color:S.muted,marginTop:2}}>{v}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 function Login({keyVal,setKey,login}:any){
   return (

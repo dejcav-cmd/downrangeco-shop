@@ -35,6 +35,13 @@ const SITE_SCHEMA = [
   }
 ];
 
+export const viewport = {
+  themeColor: "#C8922A",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export const metadata: Metadata = {
   title: "Down Range Co. — Gear for Hunters, Shooters & 2A Patriots",
   description: "Premium print-on-demand apparel for hunters, shooters, and those who stand for the Second Amendment.",
