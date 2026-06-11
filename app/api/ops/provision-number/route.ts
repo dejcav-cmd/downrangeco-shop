@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
   return html(`
     <h2>PROVISION PHONE NUMBER</h2>
     <div class="card">
-      <p>The number +18777804236 belongs to a different Twilio account (error 21660).<br>
+      <p>The number +12062036281 belongs to a different Twilio account (error 21660).<br>
       Buy a local number on account ${SID.slice(0,8)}... to fix SMS.</p>
       <p class="warn">Cost: ~$1.15/month. Works immediately, no verification needed.</p>
     </div>

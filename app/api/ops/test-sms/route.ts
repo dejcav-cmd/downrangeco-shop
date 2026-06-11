@@ -78,11 +78,11 @@ export async function GET(req: NextRequest) {
       <p>Go to Vercel &rarr; downrangeco-shop &rarr; Settings &rarr; Environment Variables and add all four TWILIO_* vars, then redeploy.</p></div>` : ""}
     <hr>
     <h3>Toll-Free Number Fix (if code 30034)</h3>
-    <p>The number +18777804236 is toll-free and requires Twilio verification before sending SMS.</p>
+    <p>The number +12062036281 is toll-free and requires Twilio verification before sending SMS.</p>
     <p><b>Option A &mdash; Verify toll-free (free, 1-3 business days):</b></p>
     <ol>
       <li>Go to <a href="https://console.twilio.com" target="_blank">console.twilio.com</a></li>
-      <li>Phone Numbers &rarr; Manage &rarr; Active Numbers &rarr; click +18777804236</li>
+      <li>Phone Numbers &rarr; Manage &rarr; Active Numbers &rarr; click +12062036281</li>
       <li>Find "Toll-Free Verification" &rarr; submit form</li>
     </ol>
     <p style="margin-top:12px"><b>Option B &mdash; Buy local number (~$1.15/mo, instant):</b></p>
