@@ -1276,7 +1276,7 @@ function CollectionsTab({apiFetch}:any){
 function StoreInfoTab({apiFetch}:any){
   const [info, setInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  useEffect(()=>{ apiFetch({action:"shop_info"}).then(setInfo).catch(()=>{}).finally(()=>setLoading(false)); },[apiFetch]);
+  useEffect(()=>{ apiFetch({action:"shop_info"}).then(d=>setInfo(d.shop?{shop:d.shop}:d)).catch(()=>{}).finally(()=>setLoading(false)); },[apiFetch]);
   if(loading) return <LoadingBar/>;
   const s = info?.shop;
   return (
@@ -1453,45 +1453,62 @@ function SocialMediaTab({ adminKey }:any) {
 
 function SocialLinksTab({ adminKey }:any) {
   const [entries, setEntries] = useState<{key:string;label:string;url:string;enabled:boolean;placeholder:string}[]>([]);
-  const [fullConfig, setFullConfig] = useState<any>({});
+  const entriesRef = React.useRef<any[]>([]);
   const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [msg,    setMsg]    = useState("");
 
-  const DEFAULTS = SOCIAL_PROFILE_FIELDS.map(f=>({key:f.key,label:f.label,url:"",enabled:false,placeholder:f.placeholder}));
+  // Keep ref in sync so save() always reads latest entries
+  useEffect(()=>{ entriesRef.current = entries; },[entries]);
 
   useEffect(()=>{
-    fetch("/api/social/config",{headers:{"x-admin-key":adminKey},cache:"no-store"}).then(r=>r.json())
+    fetch("/api/social/config",{headers:{"x-admin-key":adminKey},cache:"no-store"})
+      .then(r=>r.json())
       .then(d=>{
-        if(d.ok){
-          setFullConfig(d.config||{});
-          const saved = d.config?.socialLinks || {};
-          const savedEnabled = d.config?.socialEnabled || {};
-          setEntries(SOCIAL_PROFILE_FIELDS.map(f=>({
-            key:f.key, label:f.label, placeholder:f.placeholder,
-            url: saved[f.key]||"",
-            enabled: savedEnabled[f.key]??false,
-          })));
-        }
-      }).catch(()=>setEntries(DEFAULTS));
+        const saved        = d.config?.socialLinks   || {};
+        const savedEnabled = d.config?.socialEnabled || {};
+        const built = SOCIAL_PROFILE_FIELDS.map(f=>({
+          key:f.key, label:f.label, placeholder:f.placeholder,
+          url:     saved[f.key]        || "",
+          enabled: savedEnabled[f.key] ?? false,
+        }));
+        setEntries(built);
+        entriesRef.current = built;
+        setLoaded(true);
+      })
+      .catch(()=>{
+        const blank = SOCIAL_PROFILE_FIELDS.map(f=>({key:f.key,label:f.label,placeholder:f.placeholder,url:"",enabled:false}));
+        setEntries(blank); entriesRef.current=blank; setLoaded(true);
+      });
   },[adminKey]);
 
   const save = async()=>{
     setSaving(true);
     try {
-      const socialLinks:any  = {};
+      // Always read from ref — never stale closure
+      const current = entriesRef.current;
+      const socialLinks:any   = {};
       const socialEnabled:any = {};
-      entries.forEach(e=>{ socialLinks[e.key]=e.url; socialEnabled[e.key]=e.enabled; });
-      // POST only social keys — server merges with rest of config automatically
-      const r = await fetch("/api/social/config",{method:"POST",headers:{"x-admin-key":adminKey,"Content-Type":"application/json"},body:JSON.stringify({socialLinks,socialEnabled})});
+      current.forEach((e:any)=>{ socialLinks[e.key]=e.url; socialEnabled[e.key]=e.enabled; });
+      const r = await fetch("/api/social/config",{
+        method:"POST",
+        headers:{"x-admin-key":adminKey,"Content-Type":"application/json"},
+        body:JSON.stringify({socialLinks,socialEnabled}),
+      });
       const d = await r.json();
-      if(d.ok){ setFullConfig(d.config||{}); setMsg("✓ Saved"); }
-      else setMsg("✗ "+(d.error||"Save failed"));
+      if(d.ok) setMsg("✓ Saved — active links will appear in footer");
+      else     setMsg("✗ "+(d.error||"Save failed"));
     } catch(e:any){ setMsg("✗ "+e.message); }
-    setSaving(false); setTimeout(()=>setMsg(""),4000);
+    setSaving(false); setTimeout(()=>setMsg(""),5000);
   };
 
-  const update = (key:string, field:"url"|"enabled", value:any) =>
-    setEntries(es=>es.map(e=>e.key===key?{...e,[field]:value}:e));
+  const update = (key:string, field:"url"|"enabled", value:any) => {
+    setEntries(es=>{
+      const next = es.map(e=>e.key===key?{...e,[field]:value}:e);
+      entriesRef.current = next;
+      return next;
+    });
+  };
 
   const activeCount = entries.filter(e=>e.enabled&&e.url).length;
 

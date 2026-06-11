@@ -92,9 +92,10 @@ export async function GET(req: NextRequest) {
         const count = await shopifyAdmin("/orders/count.json?status=any");
         return NextResponse.json({ orders: data.orders, total: count.count });
       }
+      case "shop_info":
       case "shop": {
         const data = await shopifyAdmin("/shop.json");
-        return NextResponse.json(data.shop);
+        return NextResponse.json({ shop: data.shop });
       }
       case "collections": {
         const custom = await shopifyAdmin("/custom_collections.json?limit=50&fields=id,title,handle,image,products_count");
