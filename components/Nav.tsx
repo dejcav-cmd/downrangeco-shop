@@ -11,10 +11,10 @@ export default function Nav() {
       background: "rgba(9,9,11,0.96)", backdropFilter: "blur(12px)",
       borderBottom: "1px solid rgba(255,255,255,0.06)",
       display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: "0 32px", height: "68px",
+      padding: "0 32px", height: "88px",
     }}>
       <a href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", height: "100%" }}>
-        <img src="/logo.png" alt="Down Range Co." style={{ height: "52px", width: "auto", maxWidth: "280px", objectFit: "contain" }} />
+        <img src="/logo.png" alt="Down Range Co." style={{ height: "76px", width: "auto", maxWidth: "400px", objectFit: "contain" }} />
       </a>
 
       <ul style={{ display: "flex", gap: "24px", listStyle: "none", margin: 0, padding: 0 }} className="nav-links">
