@@ -1,27 +1,56 @@
-import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
+// Lazy rate limiting — limiters created on first use, never at module load
+// Gracefully skips if Redis not configured or URL is invalid
 
-// Graceful degradation — if Redis not configured, allow all requests
-function makeRatelimiter(requests: number, window: string) {
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
-    return null;
-  }
-  const redis = new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN,
-  });
-  return new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(requests, window as any) });
+function isValidUpstashUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:";
+  } catch { return false; }
 }
 
-export const adminRatelimit  = makeRatelimiter(30,  "1 m");  // 30/min on admin API
-export const loginRatelimit  = makeRatelimiter(10,  "1 m");  // 10/min on login
-export const uploadRatelimit = makeRatelimiter(5,   "1 h");  // 5/hr on image upload
+function redisReady(): boolean {
+  return (
+    isValidUpstashUrl(process.env.UPSTASH_REDIS_REST_URL) &&
+    !!process.env.UPSTASH_REDIS_REST_TOKEN
+  );
+}
+
+type Limiter = { limit: (id: string) => Promise<{ success: boolean; remaining: number }> } | null;
+
+// Cache limiters after first creation
+const cache: Record<string, Limiter> = {};
+
+function getLimiter(key: string, requests: number, window: string): Limiter {
+  if (key in cache) return cache[key];
+  if (!redisReady()) { cache[key] = null; return null; }
+  try {
+    const { Ratelimit } = require("@upstash/ratelimit");
+    const { Redis }     = require("@upstash/redis");
+    const redis = new Redis({
+      url:   process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+    cache[key] = new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(requests, window) });
+  } catch { cache[key] = null; }
+  return cache[key];
+}
 
 export async function checkRateLimit(
-  limiter: ReturnType<typeof makeRatelimiter>,
-  identifier: string
+  key: string,
+  identifier: string,
+  requests = 30,
+  window = "1 m"
 ): Promise<{ allowed: boolean; remaining?: number }> {
+  const limiter = getLimiter(key, requests, window);
   if (!limiter) return { allowed: true };
-  const { success, remaining } = await limiter.limit(identifier);
-  return { allowed: success, remaining };
+  try {
+    const { success, remaining } = await limiter.limit(identifier);
+    return { allowed: success, remaining };
+  } catch { return { allowed: true }; }
 }
+
+// Named limiters for convenience — same signature as before but lazy
+export const adminRatelimit  = null; // not used directly — use checkRateLimit("admin", ...)
+export const loginRatelimit  = null;
+export const uploadRatelimit = null;

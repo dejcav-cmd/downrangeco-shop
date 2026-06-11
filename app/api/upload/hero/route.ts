@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { uploadRatelimit, checkRateLimit } from "@/lib/ratelimit";
+import { checkRateLimit } from "@/lib/ratelimit";
 import { writeLog } from "@/lib/opsLogger";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +35,7 @@ async function getFileSha(path: string): Promise<string | null> {
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for") ?? "unknown";
-  const { allowed } = await checkRateLimit(uploadRatelimit, `upload:${ip}`);
+  const { allowed } = await checkRateLimit("upload", `upload:${ip}`, 5, "1 h");
   if (!allowed) return NextResponse.json({ error: "Rate limit exceeded — max 5 uploads/hour" }, { status: 429 });
 
   if (req.headers.get("x-admin-key") !== ADMIN_KEY)

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { loginRatelimit, checkRateLimit } from "@/lib/ratelimit";
+import { checkRateLimit } from "@/lib/ratelimit";
 import { writeLog } from "@/lib/opsLogger";
 import { loginCustomer, logoutCustomer, getCustomer, updateCustomer, createCustomer, sendMagicLink } from "@/lib/customer";
 import { cookies } from "next/headers";
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   switch (action) {
     case "login": {
       const ip = req.headers.get("x-forwarded-for") ?? "unknown";
-      const { allowed } = await checkRateLimit(loginRatelimit, `login:${ip}`);
+      const { allowed } = await checkRateLimit("login", `login:${ip}`, 10, "1 m");
       if (!allowed) return NextResponse.json({ error: "Too many attempts. Try again in a minute." }, { status: 429 });
       const { email, password } = body;
       const result = await loginCustomer(email, password);
