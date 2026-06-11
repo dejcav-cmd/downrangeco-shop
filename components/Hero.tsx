@@ -66,7 +66,7 @@ export default function Hero() {
         </div>
 
         {/* Title */}
-        <h1 style={{ fontFamily: "var(--font-bebas)", fontSize: "clamp(64px,10vw,100px)", lineHeight: 0.88, letterSpacing: "0.03em", color: "var(--text)", marginBottom: "22px" }}>
+        <h1 style={{ fontFamily: "var(--font-bebas)", fontSize: "clamp(64px,10vw,100px)", lineHeight: 0.88, letterSpacing: "0.03em", color: "#F0EDE8", marginBottom: "22px" }}>
           {lines.map((line, i) => (
             <span key={i}>
               {line === content.accent_word
@@ -92,9 +92,9 @@ export default function Hero() {
             {content.cta_primary}
           </a>
           <a href="#categories"
-            style={{ background: "transparent", color: "var(--text)", fontFamily: "var(--font-mono)", fontSize: "12px", fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", padding: "13px 30px", border: "1px solid rgba(255,255,255,0.06)", textDecoration: "none", display: "inline-block", transition: "border-color 0.2s, color 0.2s" }}
+            style={{ background: "transparent", color: "#F0EDE8", fontFamily: "var(--font-mono)", fontSize: "12px", fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", padding: "13px 30px", border: "1px solid rgba(255,255,255,0.35)", textDecoration: "none", display: "inline-block", transition: "border-color 0.2s, color 0.2s" }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(200,146,42,0.28)"; (e.currentTarget as HTMLElement).style.color = "var(--gold)"; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.06)"; (e.currentTarget as HTMLElement).style.color = "var(--text)"; }}>
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.35)"; (e.currentTarget as HTMLElement).style.color = "#F0EDE8"; }}>
             {content.cta_secondary}
           </a>
         </div>
