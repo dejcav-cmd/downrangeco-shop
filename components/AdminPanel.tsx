@@ -231,161 +231,234 @@ function DashboardTab({apiFetch,setTab}:any){
 // STOREFRONT BUILDER
 // ══════════════════════════════════════════════════════════════════════
 function StorefrontTab({adminKey,showToast}:{adminKey:string;showToast:(m:string,t?:"ok"|"err")=>void}){
-  const DEFAULT_HERO = {
-    eyebrow:"Built for the Field — Summer 2026",
-    title_line1:"GEAR FOR", title_line2:"HUNTERS,",
-    title_line3:"SHOOTERS", title_line4:"& THE 2A.",
-    subtitle:"Premium print-on-demand apparel for those who live it. No compromise. Washington-owned, American-printed.",
-    cta_primary:"Shop All Products", cta_secondary:"Browse Categories",
-    overlay_opacity:85, accent_word:"SHOOTERS",
+  const [slides,   setSlides]  = useState<any[]>([]);
+  const [editing,  setEditing] = useState<any|null>(null);
+  const [loading,  setLoading] = useState(true);
+  const [saving,   setSaving]  = useState(false);
+  const [activeTab,setActiveTab] = useState<"slides"|"upload">("slides");
+
+  const BLANK_SLIDE = {
+    id:`slide-${Date.now()}`, image:"/hero.jpg",
+    eyebrow:"", title_line1:"", title_line2:"", title_line3:"", title_line4:"",
+    accent_word:"", subtitle:"", cta_primary:"Shop Now", cta_primary_url:"/products",
+    cta_secondary:"Learn More", overlay_opacity:85, active:true, position:0,
   };
-  const [hero, setHero] = useState(DEFAULT_HERO);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [preview, setPreview] = useState(true);
 
-  useEffect(()=>{
-    fetch("/api/hero",{cache:"no-store"}).then(r=>r.json()).then(d=>setHero({...DEFAULT_HERO,...d})).catch(()=>{}).finally(()=>setLoading(false));
-  },[]);
+  const load = useCallback(async()=>{
+    setLoading(true);
+    try {
+      const r = await fetch("/api/hero",{cache:"no-store"});
+      const d = await r.json();
+      // API returns active-only; fetch all via admin header
+      const all = await fetch("/api/hero",{headers:{"x-admin-key":adminKey},cache:"no-store"}).then(r=>r.json());
+      setSlides(all.slides ?? d.slides ?? []);
+    } catch {}
+    setLoading(false);
+  },[adminKey]);
 
-  const save = async()=>{
+  useEffect(()=>{load();},[load]);
+
+  const apiPost = async(body:any)=>{
+    const r = await fetch("/api/hero",{method:"POST",headers:{"x-admin-key":adminKey,"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const d = await r.json();
+    if(d.error) throw new Error(d.error);
+    return d;
+  };
+
+  const saveSlide = async()=>{
+    if(!editing) return;
     setSaving(true);
     try {
-      const res = await fetch("/api/hero",{ method:"POST", headers:{"x-admin-key":adminKey,"Content-Type":"application/json"}, body:JSON.stringify(hero) });
-      const d = await res.json();
-      if(d.error) throw new Error(d.error);
-      showToast("Hero saved! Changes live on the homepage ✓");
-    } catch(e:any){ showToast(e.message,"err"); }
-    finally{ setSaving(false); }
+      const d = await apiPost({action:"upsert",slide:editing});
+      setSlides(d.slides);
+      setEditing(null);
+      showToast("Slide saved — live on homepage ✓");
+    } catch(e:any){showToast(e.message,"err");}
+    finally{setSaving(false);}
+  };
+
+  const deleteSlide = async(id:string)=>{
+    if(!confirm("Delete this slide?")) return;
+    const d = await apiPost({action:"delete",id}).catch(()=>null);
+    if(d?.slides) setSlides(d.slides);
+    showToast("Slide deleted");
+  };
+
+  const toggleSlide = async(id:string)=>{
+    const d = await apiPost({action:"toggle",id}).catch(()=>null);
+    if(d?.slides) setSlides(d.slides);
+  };
+
+  const moveSlide = async(id:string, dir:-1|1)=>{
+    const idx = slides.findIndex(s=>s.id===id);
+    const newIdx = idx+dir;
+    if(newIdx<0||newIdx>=slides.length) return;
+    const reordered = [...slides];
+    [reordered[idx],reordered[newIdx]] = [reordered[newIdx],reordered[idx]];
+    const order = reordered.map(s=>s.id);
+    const d = await apiPost({action:"reorder",order}).catch(()=>null);
+    if(d?.slides) setSlides(d.slides);
   };
 
   const reset = async()=>{
-    if(!confirm("Reset hero to defaults?")) return;
-    await fetch("/api/hero",{ method:"DELETE", headers:{"x-admin-key":adminKey} });
-    setHero(DEFAULT_HERO);
-    showToast("Reset to defaults");
+    if(!confirm("Reset all slides to defaults?")) return;
+    const d = await apiPost({action:"reset"}).catch(()=>null);
+    if(d?.slides){setSlides(d.slides); showToast("Reset to defaults");}
   };
 
-  const set = (k:string)=>(e:any)=>setHero(h=>({...h,[k]:e.target.value}));
-  const ovOpacity = hero.overlay_opacity??85;
+  if(editing) return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24,flexWrap:"wrap",gap:10}}>
+        <div>
+          <div style={{fontFamily:"var(--font-bebas)",fontSize:32,letterSpacing:"0.04em"}}>
+            {editing.id.startsWith("slide-new") ? "NEW SLIDE" : `EDIT SLIDE — ${editing.title_line1||"untitled"}`}
+          </div>
+          <div style={{...mono(9),color:S.muted}}>Image: {editing.image}</div>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>setEditing(null)} style={{...mono(10),background:"transparent",border:`1px solid ${S.border}`,color:S.muted,padding:"8px 14px",cursor:"pointer"}}>← Cancel</button>
+          <button onClick={saveSlide} disabled={saving} style={{...mono(11),background:S.gold,color:S.bg,padding:"9px 20px",border:"none",cursor:"pointer",fontWeight:700}}>{saving?"Saving...":"Publish Slide"}</button>
+        </div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+        {/* Left: form */}
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+          <SideCard title="Hero Image">
+            <div style={{...mono(8),color:S.muted,marginBottom:6}}>Current: {editing.image}</div>
+            <input value={editing.image} onChange={e=>setEditing((s:any)=>({...s,image:e.target.value}))} style={iStyle} placeholder="/hero.jpg" />
+            <div style={{...mono(8),color:S.muted,marginTop:6}}>Upload new images in the Upload tab, then reference the filename here (e.g. /hero-2.jpg)</div>
+          </SideCard>
+          <SideCard title="Eyebrow Text">
+            <input value={editing.eyebrow} onChange={e=>setEditing((s:any)=>({...s,eyebrow:e.target.value}))} style={iStyle} placeholder="Built for the Field — Summer 2026"/>
+          </SideCard>
+          <SideCard title="Headline (up to 4 lines)">
+            {(["title_line1","title_line2","title_line3","title_line4"] as const).map((k,i)=>(
+              <div key={k} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                <span style={{...mono(9),color:S.muted,width:16,flexShrink:0}}>L{i+1}</span>
+                <input value={editing[k]||""} onChange={e=>setEditing((s:any)=>({...s,[k]:e.target.value}))} style={{...iStyle,flex:1,fontFamily:"var(--font-bebas)",fontSize:16,letterSpacing:"0.06em"}} placeholder={i===0?"GEAR FOR":i===1?"HUNTERS,":""}/>
+              </div>
+            ))}
+            <div style={{marginTop:8}}>
+              <div style={{...mono(8),color:S.muted,marginBottom:4}}>Accent word (displayed in gold):</div>
+              <input value={editing.accent_word||""} onChange={e=>setEditing((s:any)=>({...s,accent_word:e.target.value}))} style={iStyle} placeholder="SHOOTERS"/>
+            </div>
+          </SideCard>
+          <SideCard title="Subtitle">
+            <textarea value={editing.subtitle} onChange={e=>setEditing((s:any)=>({...s,subtitle:e.target.value}))} rows={3} style={{...iStyle,resize:"vertical"}} placeholder="Supporting text below the headline"/>
+          </SideCard>
+          <SideCard title="CTAs">
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              <div><div style={{...mono(8),color:S.muted,marginBottom:4}}>Primary Label</div><input value={editing.cta_primary} onChange={e=>setEditing((s:any)=>({...s,cta_primary:e.target.value}))} style={iStyle}/></div>
+              <div><div style={{...mono(8),color:S.muted,marginBottom:4}}>Primary URL</div><input value={editing.cta_primary_url||"/products"} onChange={e=>setEditing((s:any)=>({...s,cta_primary_url:e.target.value}))} style={iStyle}/></div>
+            </div>
+            <div style={{marginTop:8}}><div style={{...mono(8),color:S.muted,marginBottom:4}}>Secondary Label</div><input value={editing.cta_secondary} onChange={e=>setEditing((s:any)=>({...s,cta_secondary:e.target.value}))} style={iStyle}/></div>
+          </SideCard>
+          <SideCard title="Overlay Opacity">
+            <div style={{display:"flex",alignItems:"center",gap:12}}>
+              <input type="range" min={30} max={99} value={editing.overlay_opacity} onChange={e=>setEditing((s:any)=>({...s,overlay_opacity:parseInt(e.target.value)}))} style={{flex:1}}/>
+              <span style={{...mono(11),color:S.gold,width:40,textAlign:"right"}}>{editing.overlay_opacity}%</span>
+            </div>
+            <div style={{...mono(8),color:S.muted,marginTop:4}}>Higher = darker overlay, easier to read text</div>
+          </SideCard>
+        </div>
+        {/* Right: mini preview */}
+        <div style={{position:"sticky",top:80,height:"fit-content"}}>
+          <div style={{...mono(9),color:S.gold,marginBottom:8}}>// Preview</div>
+          <div style={{position:"relative",height:260,overflow:"hidden",borderRadius:0,background:"#1a1a1a",backgroundImage:`url('${editing.image}')`,backgroundSize:"cover",backgroundPosition:"center"}}>
+            <div style={{position:"absolute",inset:0,background:`linear-gradient(to right,rgba(9,9,11,${(editing.overlay_opacity||85)/100}) 0%,rgba(9,9,11,${(editing.overlay_opacity||85)/100*0.4}) 100%)`}}/>
+            <div style={{position:"relative",zIndex:1,padding:"20px 24px",height:"100%",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:9,letterSpacing:"0.2em",color:"#C8922A",marginBottom:8,textTransform:"uppercase"}}>{editing.eyebrow||"Eyebrow text"}</div>
+              <div style={{fontFamily:"var(--font-bebas)",fontSize:32,lineHeight:0.9,color:"#F0EDE8",marginBottom:10}}>
+                {[editing.title_line1,editing.title_line2,editing.title_line3,editing.title_line4].filter(Boolean).map((l,i)=>(
+                  <div key={i} style={{color:l===editing.accent_word?"#C8922A":"#F0EDE8"}}>{l}</div>
+                ))}
+              </div>
+              <p style={{fontSize:11,color:"rgba(240,237,232,0.75)",margin:"0 0 12px",lineHeight:1.5}}>{(editing.subtitle||"Subtitle...").slice(0,80)}...</p>
+              <div style={{display:"flex",gap:8}}>
+                <div style={{background:"#C8922A",color:"#09090B",fontSize:9,fontFamily:"var(--font-mono)",padding:"6px 14px",letterSpacing:"0.1em",textTransform:"uppercase"}}>{editing.cta_primary||"Shop Now"}</div>
+                <div style={{border:"1px solid rgba(255,255,255,0.3)",color:"#F0EDE8",fontSize:9,fontFamily:"var(--font-mono)",padding:"5px 14px",letterSpacing:"0.1em",textTransform:"uppercase"}}>{editing.cta_secondary||"Learn More"}</div>
+              </div>
+            </div>
+          </div>
+          <div style={{...mono(8),color:S.muted,marginTop:8,textAlign:"center"}}>Live preview updates as you type</div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div>
-      <div style={{ display:"flex", alignItems:"flex-end", justifyContent:"space-between", marginBottom:28, flexWrap:"wrap", gap:12 }}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:24,flexWrap:"wrap",gap:10}}>
         <div>
-          <div style={{ fontFamily:"var(--font-bebas)", fontSize:38, letterSpacing:"0.04em" }}>
-            STOREFRONT <span style={{color:S.gold}}>BUILDER</span>
-          </div>
-          <div style={{ ...mono(9), color:S.muted }}>Edit homepage hero — changes go live immediately</div>
+          <div style={{fontFamily:"var(--font-bebas)",fontSize:38,letterSpacing:"0.04em"}}>HERO <span style={{color:S.gold}}>SLIDESHOW</span></div>
+          <div style={{...mono(9),color:S.muted}}>{slides.length} slide{slides.length!==1?"s":""} · auto-advances every 6 seconds · hover pauses</div>
         </div>
-        <div style={{ display:"flex", gap:8 }}>
-          <button onClick={()=>setPreview(p=>!p)} style={{ ...mono(10), background:preview?S.goldDim:"transparent", border:`1px solid ${preview?S.goldBorder:S.border}`, color:preview?S.gold:S.muted, padding:"8px 14px", cursor:"pointer" }}>
-            {preview?"◉ Preview On":"◎ Preview Off"}
-          </button>
-          <button onClick={reset} style={{ ...mono(10), background:S.redDim, border:`1px solid rgba(184,64,64,0.3)`, color:"#e08080", padding:"8px 14px", cursor:"pointer" }}>Reset</button>
-          <button onClick={save} disabled={saving} style={{ ...mono(11), background:S.gold, color:S.bg, padding:"8px 20px", border:"none", cursor:"pointer", fontWeight:700 }}>
-            {saving?"Saving...":"Publish Changes"}
-          </button>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>setEditing({...BLANK_SLIDE,id:`slide-new-${Date.now()}`})} style={{...mono(10),background:S.goldDim,border:`1px solid ${S.goldBorder}`,color:S.gold,padding:"8px 16px",cursor:"pointer"}}>+ Add Slide</button>
+          <button onClick={reset} style={{...mono(10),background:S.redDim,border:"1px solid rgba(184,64,64,0.3)",color:"#e08080",padding:"8px 14px",cursor:"pointer"}}>Reset Defaults</button>
         </div>
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns: preview?"1fr 1fr":"1fr", gap:24 }}>
+      {/* Tabs */}
+      <div style={{display:"flex",gap:0,marginBottom:20,borderBottom:`1px solid ${S.border}`}}>
+        {(["slides","upload"] as const).map(t=>(
+          <button key={t} onClick={()=>setActiveTab(t)}
+            style={{...mono(10),padding:"10px 20px",background:activeTab===t?S.goldDim:"transparent",borderBottom:`2px solid ${activeTab===t?S.gold:"transparent"}`,border:"none",color:activeTab===t?S.gold:S.muted,cursor:"pointer",textTransform:"uppercase"}}>
+            {t==="slides"?"🖼 Slides":"⬆ Upload Image"}
+          </button>
+        ))}
+      </div>
 
-        {/* Form */}
-        <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
-
-          <SideCard title="Eyebrow Text">
-            <input value={hero.eyebrow} onChange={set("eyebrow")} style={iStyle} placeholder="Built for the Field — Summer 2026" />
-            <div style={{ ...mono(8), color:S.muted, marginTop:4 }}>Small text above the main headline</div>
-          </SideCard>
-
-          <SideCard title="Headline (4 lines)">
-            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-              {(["title_line1","title_line2","title_line3","title_line4"] as const).map((k,i)=>(
-                <div key={k} style={{ display:"flex", alignItems:"center", gap:8 }}>
-                  <span style={{ ...mono(9), color:S.muted, width:16, flexShrink:0 }}>L{i+1}</span>
-                  <input value={(hero as any)[k]} onChange={set(k)} style={{ ...iStyle, flex:1, fontFamily:"var(--font-bebas)", fontSize:16, letterSpacing:"0.06em" }} />
+      {activeTab==="slides" && (
+        <div>
+          {loading && <LoadingBar/>}
+          {!loading && slides.length===0 && (
+            <div style={{...mono(10),color:S.muted,padding:"40px 0",textAlign:"center"}}>No slides. Click + Add Slide to create one.</div>
+          )}
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {slides.map((slide,i)=>(
+              <div key={slide.id} style={{background:S.card,border:`1px solid ${slide.active?S.border:"rgba(255,255,255,0.03)"}`,display:"grid",gridTemplateColumns:"56px 80px 1fr auto",gap:0,alignItems:"stretch",opacity:slide.active?1:0.5,transition:"opacity 0.2s"}}>
+                {/* Position controls */}
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,padding:"0 8px",borderRight:`1px solid ${S.border}`}}>
+                  <button onClick={()=>moveSlide(slide.id,-1)} disabled={i===0} style={{background:"transparent",border:"none",color:S.muted,cursor:i===0?"default":"pointer",fontSize:14,opacity:i===0?0.3:1,padding:"2px 6px"}}>▲</button>
+                  <span style={{fontFamily:"var(--font-bebas)",fontSize:20,color:S.gold}}>{i+1}</span>
+                  <button onClick={()=>moveSlide(slide.id,1)} disabled={i===slides.length-1} style={{background:"transparent",border:"none",color:S.muted,cursor:i===slides.length-1?"default":"pointer",fontSize:14,opacity:i===slides.length-1?0.3:1,padding:"2px 6px"}}>▼</button>
                 </div>
-              ))}
-            </div>
-            <div style={{ ...mono(8), color:S.muted, marginTop:8 }}>
-              Accent word (highlighted in gold):
-              <input value={hero.accent_word} onChange={set("accent_word")} style={{ ...iStyle, marginTop:6, fontSize:13 }} placeholder="SHOOTERS" />
-            </div>
-          </SideCard>
-
-          <SideCard title="Subtitle">
-            <textarea value={hero.subtitle} onChange={set("subtitle")} rows={3} style={{ ...iStyle, resize:"vertical", lineHeight:1.5 }} />
-          </SideCard>
-
-          <SideCard title="CTA Buttons">
-            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-              <div>
-                <div style={{ ...mono(8), color:S.muted, marginBottom:4 }}>Primary button (gold)</div>
-                <input value={hero.cta_primary} onChange={set("cta_primary")} style={iStyle} placeholder="Shop All Products" />
+                {/* Thumbnail */}
+                <div style={{backgroundImage:`url('${slide.image}')`,backgroundSize:"cover",backgroundPosition:"center",borderRight:`1px solid ${S.border}`,minHeight:80}}/>
+                {/* Content */}
+                <div style={{padding:"14px 16px"}}>
+                  <div style={{fontFamily:"var(--font-bebas)",fontSize:18,letterSpacing:"0.04em",color:S.text,lineHeight:1}}>
+                    {[slide.title_line1,slide.title_line2,slide.title_line3,slide.title_line4].filter(Boolean).join(" ")}
+                  </div>
+                  <div style={{...mono(9),color:S.gold,marginTop:3}}>{slide.eyebrow}</div>
+                  <div style={{fontSize:12,color:S.muted,marginTop:4}}>{slide.subtitle?.slice(0,80)}...</div>
+                  <div style={{display:"flex",gap:8,marginTop:8}}>
+                    <span style={{...mono(8),padding:"2px 8px",background:"rgba(200,146,42,0.12)",border:"1px solid rgba(200,146,42,0.3)",color:S.gold}}>{slide.cta_primary}</span>
+                    <span style={{...mono(8),padding:"2px 8px",background:"transparent",border:`1px solid ${S.border}`,color:S.muted}}>{slide.image}</span>
+                    <span style={{...mono(8),padding:"2px 8px",background:"transparent",border:`1px solid ${S.border}`,color:S.muted}}>overlay {slide.overlay_opacity}%</span>
+                  </div>
+                </div>
+                {/* Actions */}
+                <div style={{display:"flex",flexDirection:"column",gap:0,borderLeft:`1px solid ${S.border}`}}>
+                  <button onClick={()=>setEditing({...slide})} style={{flex:1,background:"transparent",border:"none",color:S.gold,cursor:"pointer",...mono(9),padding:"0 16px",borderBottom:`1px solid ${S.border}`}}>✎ Edit</button>
+                  <button onClick={()=>toggleSlide(slide.id)} style={{flex:1,background:"transparent",border:"none",color:slide.active?"#6adb8a":"#e08080",cursor:"pointer",...mono(9),padding:"0 16px",borderBottom:`1px solid ${S.border}`}}>{slide.active?"● On":"○ Off"}</button>
+                  <button onClick={()=>deleteSlide(slide.id)} style={{flex:1,background:"transparent",border:"none",color:"#e08080",cursor:"pointer",...mono(9),padding:"0 16px"}}>✕ Del</button>
+                </div>
               </div>
-              <div>
-                <div style={{ ...mono(8), color:S.muted, marginBottom:4 }}>Secondary button (ghost)</div>
-                <input value={hero.cta_secondary} onChange={set("cta_secondary")} style={iStyle} placeholder="Browse Categories" />
-              </div>
-            </div>
-          </SideCard>
-
-          <SideCard title="Overlay Darkness">
-            <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-              <input type="range" min={20} max={100} value={ovOpacity} onChange={e=>setHero(h=>({...h,overlay_opacity:parseInt(e.target.value)}))}
-                style={{ flex:1, accentColor:S.gold }} />
-              <span style={{ ...mono(12), color:S.gold, fontWeight:600, minWidth:36 }}>{ovOpacity}%</span>
-            </div>
-            <div style={{ ...mono(8), color:S.muted, marginTop:4 }}>How dark the overlay on the hero image is (higher = darker)</div>
-          </SideCard>
-
-          <HeroImageUpload adminKey={adminKey} showToast={showToast}/>
-
-        </div>
-
-        {/* Live preview */}
-        {preview && (
-          <div>
-            <div style={{ ...mono(9), color:S.gold, marginBottom:10 }}>◉ Live Preview</div>
-            <div style={{ border:`1px solid ${S.border}`, overflow:"hidden", position:"sticky", top:20 }}>
-              <HeroPreview hero={hero} />
-            </div>
+            ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {activeTab==="upload" && (
+        <HeroUploadTab adminKey={adminKey} showToast={showToast}/>
+      )}
     </div>
   );
 }
 
-function HeroPreview({hero}:any){
-  const op = (hero.overlay_opacity??85)/100;
-  const lines = [hero.title_line1,hero.title_line2,hero.title_line3,hero.title_line4].filter(Boolean);
-  return (
-    <div style={{ position:"relative", minHeight:280, background:"#1a1a1d", backgroundImage:"url('/hero.jpg')", backgroundSize:"cover", backgroundPosition:"center 30%", display:"flex", alignItems:"flex-end" }}>
-      <div style={{ position:"absolute", inset:0, background:`linear-gradient(to right, rgba(9,9,11,${op}) 0%, rgba(9,9,11,${op*0.6}) 60%, rgba(9,9,11,${op*0.2}) 100%)` }}/>
-      <div style={{ position:"relative", zIndex:2, padding:"16px 20px 24px", maxWidth:"80%" }}>
-        <div style={{ fontFamily:"var(--font-mono)", fontSize:8, letterSpacing:"0.2em", textTransform:"uppercase", color:S.gold, marginBottom:8, display:"flex", alignItems:"center", gap:6 }}>
-          <span style={{ width:16, height:1, background:S.gold, display:"inline-block" }}/>{hero.eyebrow}
-        </div>
-        <div style={{ fontFamily:"var(--font-bebas)", fontSize:"clamp(22px,4vw,34px)", lineHeight:0.9, letterSpacing:"0.03em", color:S.text, marginBottom:10 }}>
-          {lines.map((l:string,i:number)=>(
-            <span key={i}>{l===hero.accent_word?<span style={{color:S.gold}}>{l}</span>:l}{i<lines.length-1&&<br/>}</span>
-          ))}
-        </div>
-        <p style={{ fontSize:10, color:S.muted, lineHeight:1.5, marginBottom:12, maxWidth:280, fontWeight:300 }}>{hero.subtitle}</p>
-        <div style={{ display:"flex", gap:6 }}>
-          <span style={{ background:S.gold, color:S.bg, fontFamily:"var(--font-mono)", fontSize:8, fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", padding:"5px 10px" }}>{hero.cta_primary}</span>
-          <span style={{ background:"transparent", color:S.text, fontFamily:"var(--font-mono)", fontSize:8, letterSpacing:"0.1em", textTransform:"uppercase", padding:"4px 10px", border:`1px solid rgba(255,255,255,0.15)` }}>{hero.cta_secondary}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
 
-// ══════════════════════════════════════════════════════════════════════
-// PRODUCTS TAB
-// ══════════════════════════════════════════════════════════════════════
 function ProductsTab({apiFetch,apiPost,showToast}:any){
   const [products,setProducts]=useState<any[]>([]);
   const [loading,setLoading]=useState(false);
@@ -904,6 +977,75 @@ function PagesTab({adminKey,showToast}:any){
   );
 }
 
+
+
+// ── Hero image upload tab ──────────────────────────────────────────────
+function HeroUploadTab({adminKey,showToast}:{adminKey:string;showToast:(m:string,t?:"ok"|"err")=>void}){
+  const [file,      setFile]    = useState<File|null>(null);
+  const [filename,  setFilename] = useState("hero-2.jpg");
+  const [uploading, setUploading]= useState(false);
+  const [preview,   setPreview] = useState<string|null>(null);
+
+  const onFile = (e:React.ChangeEvent<HTMLInputElement>)=>{
+    const f = e.target.files?.[0];
+    if(!f) return;
+    setFile(f);
+    setPreview(URL.createObjectURL(f));
+    // Auto-suggest filename from file name
+    const name = f.name.replace(/[^a-zA-Z0-9._-]/g,"-").toLowerCase();
+    setFilename(name.startsWith("hero")?name:`hero-${name}`);
+  };
+
+  const upload = async()=>{
+    if(!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("filename", filename);
+      const r = await fetch("/api/upload/hero",{method:"POST",headers:{"x-admin-key":adminKey},body:fd});
+      const d = await r.json();
+      if(!r.ok) throw new Error(d.error??`HTTP ${r.status}`);
+      showToast(`Uploaded! Use /${filename} as the slide image path. Vercel will redeploy in ~60s.`);
+      setFile(null); setPreview(null);
+    } catch(e:any){showToast(e.message,"err");}
+    finally{setUploading(false);}
+  };
+
+  return (
+    <div style={{maxWidth:520}}>
+      <div style={{...mono(9),color:S.muted,marginBottom:16}}>
+        Upload a new hero background image. It will be committed to GitHub and available as a slide background within ~60 seconds (Vercel redeploy).
+      </div>
+      <SideCard title="Select Image">
+        <input type="file" accept="image/*" onChange={onFile} style={{color:S.text,marginBottom:12,display:"block"}}/>
+        {preview&&<img src={preview} alt="preview" style={{width:"100%",height:160,objectFit:"cover",marginBottom:12}}/>}
+      </SideCard>
+      {file&&(
+        <SideCard title="Save As (filename)">
+          <input value={filename} onChange={e=>setFilename(e.target.value)} style={iStyle} placeholder="hero-2.jpg"/>
+          <div style={{...mono(8),color:S.muted,marginTop:6}}>
+            Will be available at <span style={{color:S.gold}}>/{filename}</span> — use this path in the slide Image field.
+          </div>
+        </SideCard>
+      )}
+      <div style={{marginTop:14}}>
+        <button onClick={upload} disabled={!file||uploading}
+          style={{...mono(11),background:S.gold,color:S.bg,padding:"10px 24px",border:"none",cursor:!file||uploading?"not-allowed":"pointer",fontWeight:700,opacity:!file||uploading?0.6:1}}>
+          {uploading?"Uploading...":"⬆ Upload Image"}
+        </button>
+      </div>
+      <div style={{marginTop:20,background:S.bg3,border:`1px solid ${S.border}`,padding:14}}>
+        <div style={{...mono(8),color:S.gold,marginBottom:8}}>Existing hero images</div>
+        {["/hero.jpg","/hero-2.jpg","/hero-3.jpg"].map(p=>(
+          <div key={p} style={{...mono(9),color:S.muted,padding:"4px 0",borderBottom:`1px solid ${S.border}`}}>
+            {p} <span style={{color:"#666"}}>— use this path in slide Image field</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // ── Ops Tab ──────────────────────────────────────────────────────────
 function OpsTab({ adminKey }: { adminKey: string }) {
