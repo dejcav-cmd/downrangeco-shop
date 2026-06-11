@@ -848,7 +848,7 @@ function StorefrontTab({adminKey,showToast}:{adminKey:string;showToast:(m:string
   const [editing,   setEditing]   = useState<any|null>(null);
   const [loading,   setLoading]   = useState(true);
   const [saving,    setSaving]    = useState(false);
-  const [activeTab, setActiveTab] = useState<"slides"|"upload">("slides");
+  const [activeTab, setActiveTab] = useState<"slides"|"upload"|"footer">("slides");
   const [images,    setImages]    = useState<{path:string;filename:string;size:string}[]>([]);
   const [kvReady,   setKvReady]   = useState<boolean|null>(null);
   const [publishing,setPublishing]= useState(false);
@@ -974,10 +974,10 @@ function StorefrontTab({adminKey,showToast}:{adminKey:string;showToast:(m:string
 
       {/* Tabs */}
       <div style={{display:"flex",gap:0,borderBottom:`1px solid ${S.border}`,marginBottom:20}}>
-        {(["slides","upload"] as const).map(t=>(
+        {(["slides","upload","footer"] as const).map(t=>(
           <button key={t} onClick={()=>setActiveTab(t)}
             style={{...m(9),padding:"9px 18px",background:"transparent",borderBottom:`2px solid ${activeTab===t?S.gold:"transparent"}`,border:"none",color:activeTab===t?S.gold:S.muted,cursor:"pointer",textTransform:"uppercase"}}>
-            {t==="slides"?"🖼 Slides":"⬆ Upload Image"}
+{t==="slides"?"🖼 Slides":t==="upload"?"⬆ Upload Image":"🔗 Footer Links"}
           </button>
         ))}
       </div>
@@ -1017,6 +1017,7 @@ function StorefrontTab({adminKey,showToast}:{adminKey:string;showToast:(m:string
         </div>
       )}
       {activeTab==="upload" && <HeroUploadTab adminKey={adminKey} showToast={showToast} setImages={setImages}/>}
+      {activeTab==="footer" && <FooterConnectTab adminKey={adminKey} showToast={showToast}/>}
     </div>
   );
 }
@@ -1604,6 +1605,115 @@ function SocialSetupTab() {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// FOOTER CONNECT MANAGER
+// ══════════════════════════════════════════════════════════════════════
+function FooterConnectTab({ adminKey, showToast }:any) {
+  const [links,   setLinks]   = useState<any[]>([]);
+  const [saving,  setSaving]  = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const DEFAULT = [
+    { id:"portal",    label:"📡 News Portal", href:"https://downrangeco.com",                          enabled:true  },
+    { id:"twitter",   label:"𝕏 X / Twitter",  href:"https://x.com/DownRangeCo",                       enabled:true  },
+    { id:"bluesky",   label:"🦋 Bluesky",      href:"https://bsky.app/profile/downrangeco.bsky.social", enabled:true  },
+    { id:"youtube",   label:"▶ YouTube",       href:"https://www.youtube.com/@DownRangeCo",             enabled:true  },
+    { id:"facebook",  label:"f Facebook",      href:"https://www.facebook.com/downrangeco",             enabled:true  },
+    { id:"instagram", label:"◈ Instagram",     href:"https://www.instagram.com/downrangeco",            enabled:false },
+    { id:"threads",   label:"@ Threads",       href:"https://www.threads.net/@downrangeco",             enabled:false },
+    { id:"reddit",    label:"🔴 Reddit",        href:"https://www.reddit.com/r/DownRangeCo",             enabled:false },
+  ];
+
+  useEffect(()=>{
+    fetch("/api/footer",{cache:"no-store"}).then(r=>r.json())
+      .then(d=>{ setLinks(d.links?.length ? d.links : DEFAULT); })
+      .catch(()=>setLinks(DEFAULT))
+      .finally(()=>setLoading(false));
+  },[]);
+
+  const save = async()=>{
+    setSaving(true);
+    try {
+      const r = await fetch("/api/footer",{method:"POST",headers:{"x-admin-key":adminKey,"Content-Type":"application/json"},body:JSON.stringify({links})});
+      const d = await r.json();
+      showToast(d.ok?"Footer Connect links saved ✓":"Save failed","ok");
+    } catch(e:any){ showToast(e.message,"err"); }
+    setSaving(false);
+  };
+
+  const update = (id:string, field:string, value:any) =>
+    setLinks(ls => ls.map(l => l.id===id ? {...l,[field]:value} : l));
+
+  const addLink = () => setLinks(ls => [...ls, { id:`custom-${Date.now()}`, label:"New Link", href:"https://", enabled:true }]);
+  const remove  = (id:string) => setLinks(ls => ls.filter(l=>l.id!==id));
+
+  if(loading) return <LoadingBar/>;
+
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10}}>
+        <div>
+          <div style={{fontFamily:F,fontSize:26,letterSpacing:"0.04em"}}>FOOTER <span style={{color:S.gold}}>CONNECT</span></div>
+          <div style={{...m(8),color:S.muted,marginTop:3}}>
+            Toggle and configure the social links shown in the footer Connect column. Changes go live instantly.
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <Btn onClick={addLink} color="ghost" size="sm">+ Add Link</Btn>
+          <Btn onClick={save} disabled={saving}>{saving?"Saving…":"💾 Save"}</Btn>
+        </div>
+      </div>
+
+      {/* Live preview strip */}
+      <div style={{background:S.bg3,border:`1px solid ${S.border}`,padding:"10px 14px",marginBottom:20,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+        <span style={{...m(8),color:S.muted}}>Preview:</span>
+        {links.filter(l=>l.enabled).map(l=>(
+          <span key={l.id} style={{...m(9),color:S.gold}}>{l.label}</span>
+        ))}
+        {links.filter(l=>l.enabled).length===0 && <span style={{...m(8),color:S.muted}}>No links enabled</span>}
+      </div>
+
+      {/* Links list */}
+      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+        {links.map((l,i)=>(
+          <div key={l.id} style={{background:S.card,border:`1px solid ${l.enabled?S.goldBorder:S.border}`,padding:"12px 14px",display:"grid",gridTemplateColumns:"44px 1fr 1fr 80px 36px",gap:10,alignItems:"center",opacity:l.enabled?1:0.5,transition:"opacity 0.15s"}}>
+            {/* Toggle */}
+            <div onClick={()=>update(l.id,"enabled",!l.enabled)}
+              style={{width:36,height:20,borderRadius:10,background:l.enabled?S.gold:S.bg3,position:"relative",cursor:"pointer",transition:"background 0.2s",border:`1px solid ${S.border}`}}>
+              <div style={{position:"absolute",top:3,left:l.enabled?"19px":"3px",width:12,height:12,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
+            </div>
+            {/* Label */}
+            <div>
+              <FieldLbl>Label</FieldLbl>
+              <input value={l.label} onChange={e=>update(l.id,"label",e.target.value)} style={{...iStyle(),fontSize:11}}/>
+            </div>
+            {/* URL */}
+            <div>
+              <FieldLbl>URL</FieldLbl>
+              <input value={l.href} onChange={e=>update(l.id,"href",e.target.value)} style={{...iStyle(),fontSize:11}}/>
+            </div>
+            {/* Status */}
+            <div style={{textAlign:"center"}}>
+              <span style={{...m(8),padding:"3px 8px",background:l.enabled?S.goldDim:S.bg3,color:l.enabled?S.gold:S.muted,border:`1px solid ${l.enabled?S.goldBorder:S.border}`}}>
+                {l.enabled?"● ON":"○ OFF"}
+              </span>
+            </div>
+            {/* Delete */}
+            <button onClick={()=>remove(l.id)}
+              style={{background:"transparent",border:"none",color:S.muted,cursor:"pointer",fontSize:14,padding:0,transition:"color 0.15s"}}
+              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.color="#e08080"}
+              onMouseLeave={e=>(e.currentTarget as HTMLElement).style.color=S.muted}>✕</button>
+          </div>
+        ))}
+      </div>
+
+      <div style={{marginTop:16,...m(8),color:S.muted}}>
+        Toggle the switch to show/hide a link. Edit the label and URL directly. Add custom links with + Add Link.
+      </div>
     </div>
   );
 }
