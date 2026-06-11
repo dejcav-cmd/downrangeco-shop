@@ -36,7 +36,7 @@ const LABELS: Record<string,string> = {
 // Public GET — returns active links for footer (no auth needed)
 // Admin GET (x-admin-key) — returns full stored config
 export async function GET(req: NextRequest) {
-  const isAdmin = req.headers.get("x-admin-key") === ADMIN_KEY;
+  const isAdmin = req.headers.get("x-admin-key") === ADMIN_KEY || req.headers.get("x-admin-key") === ADMIN_KEY2;
   const config  = await read();
 
   if (!isAdmin) {

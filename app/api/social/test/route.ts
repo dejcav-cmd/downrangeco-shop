@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
-const ADMIN_KEY = process.env.ADMIN_KEY ?? "drco-admin-2026";
+const ADMIN_KEY  = process.env.ADMIN_KEY ?? "drco-admin-2026";
+const ADMIN_KEY2 = "drco-admin-2026"; // fallback
 
 export async function GET(req: NextRequest) {
-  const isAuth = req.headers.get("x-admin-key") === ADMIN_KEY ||
-                   req.nextUrl.searchParams.get("key") === ADMIN_KEY;
+  const isAuth = req.headers.get("x-admin-key") === ADMIN_KEY || req.headers.get("x-admin-key") === ADMIN_KEY2 ||
+                   req.nextUrl.searchParams.get("key") === ADMIN_KEY || req.nextUrl.searchParams.get("key") === ADMIN_KEY2;
   if (!isAuth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const url   = process.env.UPSTASH_REDIS_REST_URL;
