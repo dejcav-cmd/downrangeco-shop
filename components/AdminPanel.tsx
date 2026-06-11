@@ -1276,7 +1276,7 @@ function CollectionsTab({apiFetch}:any){
 function StoreInfoTab({apiFetch}:any){
   const [info, setInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  useEffect(()=>{ apiFetch({action:"shop_info"}).then(d=>setInfo(d.shop?{shop:d.shop}:d)).catch(()=>{}).finally(()=>setLoading(false)); },[apiFetch]);
+  useEffect(()=>{ apiFetch({action:"shop_info"}).then((d:any)=>setInfo(d.shop?{shop:d.shop}:d)).catch(()=>{}).finally(()=>setLoading(false)); },[apiFetch]);
   if(loading) return <LoadingBar/>;
   const s = info?.shop;
   return (
