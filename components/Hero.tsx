@@ -22,20 +22,19 @@ const DEFAULT_SLIDES: HeroSlide[] = [
   },
 ];
 
-const INTERVAL   = 8000;  // 8s per slide
-const FADE_MS    = 700;   // crossfade duration
+const INTERVAL = 10000; // 10s per slide
+const FADE_MS  = 1200;  // crossfade duration
 
 export default function Hero() {
-  const [slides,   setSlides]   = useState<HeroSlide[]>(DEFAULT_SLIDES);
-  const [current,  setCurrent]  = useState(0);
-  const [next,     setNext]     = useState<number | null>(null);
-  const [fading,   setFading]   = useState(false);
-  const [paused,   setPaused]   = useState(false);
-  const timerRef  = useRef<ReturnType<typeof setInterval> | null>(null);
-  const progress  = useRef(0);
-  const [bar,      setBar]      = useState(0); // 0-100 progress bar
+  const [slides,  setSlides]  = useState<HeroSlide[]>(DEFAULT_SLIDES);
+  const [current, setCurrent] = useState(0);
+  const [prev,    setPrev]    = useState<number | null>(null);
+  const [fading,  setFading]  = useState(false);
+  const [paused,  setPaused]  = useState(false);
+  const [bar,     setBar]     = useState(0);
+  const barRef    = useRef(0);
+  const fadingRef = useRef(false);
 
-  // Load slides from API
   useEffect(() => {
     fetch("/api/hero", { cache: "no-store" })
       .then(r => r.json())
@@ -43,63 +42,52 @@ export default function Hero() {
       .catch(() => {});
   }, []);
 
-  // Advance to a slide with crossfade
-  const goTo = useCallback((idx: number) => {
-    if (fading || slides.length <= 1) return;
-    setNext(idx);
-    setFading(true);
-    setBar(0);
-    setTimeout(() => {
-      setCurrent(idx);
-      setNext(null);
-      setFading(false);
-    }, FADE_MS);
-  }, [fading, slides.length]);
-
-  const advance = useCallback(() => {
+  // Navigate to a specific slide — stacks old image underneath new one and crossfades
+  const goTo = useCallback((nextIdx: number) => {
+    if (fadingRef.current) return;
     setCurrent(c => {
-      const n = (c + 1) % slides.length;
-      goTo(n);
-      return c; // goTo handles the actual change
+      if (c === nextIdx) return c;
+      setPrev(c);           // keep old image rendered underneath
+      setFading(true);
+      fadingRef.current = true;
+      setBar(0);
+      barRef.current = 0;
+      setTimeout(() => {
+        setPrev(null);       // remove old image after fade completes
+        setFading(false);
+        fadingRef.current = false;
+      }, FADE_MS);
+      return nextIdx;
     });
-  }, [slides.length, goTo]);
+  }, []);
 
-  // Auto-advance + progress bar
+  // Auto-advance
   useEffect(() => {
     if (slides.length <= 1 || paused) return;
+    barRef.current = 0;
     setBar(0);
-    progress.current = 0;
 
-    // Progress bar — 60fps
     const barTimer = setInterval(() => {
-      progress.current += (100 / (INTERVAL / 16.67));
-      setBar(Math.min(progress.current, 100));
+      if (fadingRef.current) return; // don't advance bar during fade
+      barRef.current += 100 / (INTERVAL / 16.67);
+      setBar(Math.min(barRef.current, 100));
     }, 16.67);
 
-    // Slide advance
-    timerRef.current = setInterval(() => {
+    const slideTimer = setInterval(() => {
       setCurrent(c => {
         const n = (c + 1) % slides.length;
-        setNext(n);
-        setFading(true);
-        setBar(0);
-        progress.current = 0;
-        setTimeout(() => { setCurrent(n); setNext(null); setFading(false); }, FADE_MS);
+        goTo(n);
         return c;
       });
     }, INTERVAL);
 
-    return () => {
-      clearInterval(barTimer);
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [slides.length, paused, current]);
+    return () => { clearInterval(barTimer); clearInterval(slideTimer); };
+  }, [slides.length, paused, goTo]);
 
-  const slide = slides[current];
-  const nextSlide = next !== null ? slides[next] : null;
-
-  const lines = [slide.title_line1, slide.title_line2, slide.title_line3, slide.title_line4].filter(Boolean);
-  const ov    = (slide.overlay_opacity ?? 85) / 100;
+  const slide     = slides[current];
+  const prevSlide = prev !== null ? slides[prev] : null;
+  const ov        = (slide.overlay_opacity ?? 85) / 100;
+  const lines     = [slide.title_line1, slide.title_line2, slide.title_line3, slide.title_line4].filter(Boolean) as string[];
 
   return (
     <section
@@ -107,31 +95,29 @@ export default function Hero() {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* ── Current slide image ── */}
-      <div key={`bg-${slide.id}`} style={{
-        position:"absolute", inset:0, zIndex:0,
-        backgroundImage:`url('${slide.image}')`,
-        backgroundSize:"cover", backgroundPosition:"center 30%",
-        transition:`opacity ${FADE_MS}ms ease`,
-        opacity: fading ? 0 : 1,
-      }} />
-
-      {/* ── Next slide image (fades in) ── */}
-      {nextSlide && (
+      {/* ── Image layer: prev image stays visible underneath ── */}
+      {prevSlide && (
         <div style={{
-          position:"absolute", inset:0, zIndex:1,
-          backgroundImage:`url('${nextSlide.image}')`,
+          position:"absolute", inset:0, zIndex:0,
+          backgroundImage:`url('${prevSlide.image}')`,
           backgroundSize:"cover", backgroundPosition:"center 30%",
-          transition:`opacity ${FADE_MS}ms ease`,
-          opacity: fading ? 1 : 0,
         }} />
       )}
 
-      {/* ── Overlay ── */}
+      {/* ── Current image fades IN on top ── */}
+      <div style={{
+        position:"absolute", inset:0, zIndex:1,
+        backgroundImage:`url('${slide.image}')`,
+        backgroundSize:"cover", backgroundPosition:"center 30%",
+        opacity: fading ? 0 : 1,
+        transition: fading ? "none" : `opacity ${FADE_MS}ms ease`,
+      }} />
+
+      {/* ── Overlay (sits above both images) ── */}
       <div style={{
         position:"absolute", inset:0, zIndex:2,
         background:`
-          linear-gradient(to right, rgba(9,9,11,${ov}) 0%, rgba(9,9,11,${ov*0.65}) 60%, rgba(9,9,11,${ov*0.25}) 100%),
+          linear-gradient(to right, rgba(9,9,11,${ov}) 0%, rgba(9,9,11,${ov*0.65}) 60%, rgba(9,9,11,${ov*0.2}) 100%),
           repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(255,255,255,0.012) 40px),
           repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(255,255,255,0.012) 40px)
         `,
@@ -152,10 +138,11 @@ export default function Hero() {
         <circle cx="130" cy="130" r="3" fill="#C8922A"/>
       </svg>
 
-      {/* ── Slide content — fades with slide ── */}
+      {/* ── Content ── */}
       <div style={{
         position:"relative", zIndex:4, padding:"0 48px", maxWidth:700,
-        transition:`opacity ${FADE_MS}ms ease`, opacity: fading ? 0 : 1,
+        opacity: fading ? 0 : 1,
+        transition: `opacity ${FADE_MS * 0.6}ms ease`,
       }}>
         <h1 style={{ fontFamily:"var(--font-bebas)", fontSize:"clamp(64px,10vw,100px)", lineHeight:0.88, letterSpacing:"0.03em", color:"#F0EDE8", marginBottom:22 }}>
           {lines.map((line, i) => (
@@ -172,6 +159,7 @@ export default function Hero() {
           {slide.subtitle}
         </p>
 
+        {/* CTA row + inline slide nav */}
         <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginBottom:20, alignItems:"center" }}>
           <a href={slide.cta_primary_url ?? "/products"}
             style={{ background:"#C8922A", color:"#09090B", fontFamily:"var(--font-mono)", fontSize:12, fontWeight:600, letterSpacing:"0.12em", textTransform:"uppercase", padding:"14px 30px", textDecoration:"none", display:"inline-block", transition:"background 0.2s, transform 0.1s" }}
@@ -185,7 +173,7 @@ export default function Hero() {
             onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.35)";(e.currentTarget as HTMLElement).style.color="#F0EDE8"}}>
             {slide.cta_secondary}
           </a>
-          {/* ── Inline slide nav — same row as buttons ── */}
+
           {slides.length > 1 && (
             <div style={{ display:"flex", gap:6, alignItems:"center", marginLeft:4 }}>
               <button onClick={()=>goTo((current-1+slides.length)%slides.length)}
@@ -215,18 +203,14 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* ── Progress bar only ── */}
+      {/* ── Progress bar ── */}
       {slides.length > 1 && (
         <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:5, height:2, background:"rgba(255,255,255,0.08)" }}>
           <div style={{ height:"100%", background:"#C8922A", width:`${bar}%`, transition:paused?"none":"width 0.1s linear" }}/>
         </div>
       )}
 
-      <style>{`
-        @media(max-width:768px){
-          section > div[style*="padding: 0 48px"] { padding: 0 24px 48px !important; }
-        }
-      `}</style>
+      <style>{`@media(max-width:768px){section>div[style*="padding: 0 48px"]{padding:0 24px!important}}`}</style>
     </section>
   );
 }
