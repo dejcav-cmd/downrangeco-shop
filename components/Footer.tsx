@@ -71,10 +71,12 @@ export default function Footer() {
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--gold)", marginBottom: "14px" }}>Connect</div>
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "8px" }}>
             {[
-              { label: "DownRange Portal", href: "https://downrangeco.com", external: true },
-              { label: "My Account",       href: "https://shopify.com/83728892116/account", external: true },
-              { label: "Instagram",        href: "#" },
-              { label: "Facebook",         href: "#" },
+              { label: "📡 News Portal",   href: "https://downrangeco.com",                        external: true },
+              { label: "My Account",       href: "https://shopify.com/83728892116/account",         external: true },
+              { label: "𝕏 X / Twitter",   href: "https://x.com/DownRangeCo",                       external: true },
+              { label: "🦋 Bluesky",       href: "https://bsky.app/profile/downrangeco.bsky.social", external: true },
+              { label: "▶ YouTube",        href: "https://www.youtube.com/@DownRangeCo",             external: true },
+              { label: "f Facebook",       href: "https://www.facebook.com/downrangeco",             external: true },
             ].map(l => (
               <li key={l.label}>
                 <a href={l.href} target={l.external ? "_blank" : undefined} rel={l.external ? "noopener noreferrer" : undefined}
