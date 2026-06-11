@@ -157,11 +157,6 @@ export default function Hero() {
         position:"relative", zIndex:4, padding:"0 48px 60px", maxWidth:700,
         transition:`opacity ${FADE_MS}ms ease`, opacity: fading ? 0 : 1,
       }}>
-        <div style={{ fontFamily:"var(--font-mono)", fontSize:11, letterSpacing:"0.22em", textTransform:"uppercase", color:"#C8922A", marginBottom:18, display:"flex", alignItems:"center", gap:10 }}>
-          <span style={{ display:"inline-block", width:32, height:1, background:"#C8922A" }}/>
-          {slide.eyebrow}
-        </div>
-
         <h1 style={{ fontFamily:"var(--font-bebas)", fontSize:"clamp(64px,10vw,100px)", lineHeight:0.88, letterSpacing:"0.03em", color:"#F0EDE8", marginBottom:22 }}>
           {lines.map((line, i) => (
             <span key={i}>
@@ -177,7 +172,7 @@ export default function Hero() {
           {slide.subtitle}
         </p>
 
-        <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
+        <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginBottom:20 }}>
           <a href={slide.cta_primary_url ?? "/products"}
             style={{ background:"#C8922A", color:"#09090B", fontFamily:"var(--font-mono)", fontSize:12, fontWeight:600, letterSpacing:"0.12em", textTransform:"uppercase", padding:"14px 30px", textDecoration:"none", display:"inline-block", transition:"background 0.2s, transform 0.1s" }}
             onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="#E5A83A";(e.currentTarget as HTMLElement).style.transform="translateY(-1px)"}}
@@ -190,6 +185,11 @@ export default function Hero() {
             onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.35)";(e.currentTarget as HTMLElement).style.color="#F0EDE8"}}>
             {slide.cta_secondary}
           </a>
+        </div>
+
+        <div style={{ fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"0.20em", textTransform:"uppercase", color:"rgba(200,146,42,0.65)", display:"flex", alignItems:"center", gap:10 }}>
+          <span style={{ display:"inline-block", width:24, height:1, background:"rgba(200,146,42,0.65)" }}/>
+          {slide.eyebrow}
         </div>
       </div>
 

@@ -91,11 +91,15 @@ function auth(req: NextRequest) {
   return req.headers.get("x-admin-key") === ADMIN_KEY;
 }
 
-// GET — returns all active slides
-export async function GET() {
+// GET — returns active slides (all slides when authenticated as admin)
+export async function GET(req: NextRequest) {
   const slides = await getSlides();
+  const isAdmin = req.headers.get("x-admin-key") === ADMIN_KEY;
+  const filtered = isAdmin
+    ? slides.sort((a, b) => a.position - b.position)           // all slides for admin
+    : slides.filter(s => s.active).sort((a, b) => a.position - b.position); // active only for public
   return NextResponse.json(
-    { slides: slides.filter(s => s.active).sort((a, b) => a.position - b.position) },
+    { slides: filtered },
     { headers: { "Cache-Control": "no-store" } }
   );
 }

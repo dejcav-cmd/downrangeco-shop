@@ -247,11 +247,9 @@ function StorefrontTab({adminKey,showToast}:{adminKey:string;showToast:(m:string
   const load = useCallback(async()=>{
     setLoading(true);
     try {
-      const r = await fetch("/api/hero",{cache:"no-store"});
+      const r = await fetch("/api/hero",{headers:{"x-admin-key":adminKey},cache:"no-store"});
       const d = await r.json();
-      // API returns active-only; fetch all via admin header
-      const all = await fetch("/api/hero",{headers:{"x-admin-key":adminKey},cache:"no-store"}).then(r=>r.json());
-      setSlides(all.slides ?? d.slides ?? []);
+      setSlides(d.slides ?? []);
     } catch {}
     setLoading(false);
   },[adminKey]);
