@@ -818,7 +818,7 @@ function HeroImageUpload({adminKey,showToast}:{adminKey:string;showToast:(m:stri
       const res=await fetch("/api/upload/hero",{method:"POST",headers:{"x-admin-key":adminKey},body:fd});
       const data=await res.json();
       if(data.error) throw new Error(data.error);
-      showToast("Hero image uploaded! ✓");
+      showToast("Hero image saved! Vercel redeploys in ~60s ✓");
     }catch(err:any){showToast((err as any).message,"err");setPreview(null);}
     finally{setUploading(false);}
   };
@@ -834,7 +834,7 @@ function HeroImageUpload({adminKey,showToast}:{adminKey:string;showToast:(m:stri
         style={{width:"100%",background:uploading?S.bg3:S.goldDim,border:`1px solid ${S.goldBorder}`,color:uploading?S.muted:S.gold,fontFamily:"var(--font-mono)",fontSize:"11px",letterSpacing:"0.11em",textTransform:"uppercase",padding:"10px",cursor:uploading?"not-allowed":"pointer",fontWeight:600}}>
         {uploading?"Uploading...":"↑ Upload New Hero Image"}
       </button>
-      <div style={{fontFamily:"var(--font-mono)",fontSize:"8px",letterSpacing:"0.11em",textTransform:"uppercase",color:S.muted,marginTop:6}}>Note: On Vercel, images reset on redeploy. Commit hero.jpg to repo for permanence.</div>
+      <div style={{fontFamily:"var(--font-mono)",fontSize:"8px",letterSpacing:"0.11em",textTransform:"uppercase",color:S.muted,marginTop:6}}>Upload commits directly to GitHub → Vercel auto-deploys in ~60 seconds. Requires GH_TOKEN in Vercel env vars.</div>
     </SideCard>
   );
 }
