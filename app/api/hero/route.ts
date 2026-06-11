@@ -65,24 +65,33 @@ export const DEFAULT_SLIDES: HeroSlide[] = [
 ];
 
 // ── KV helpers ───────────────────────────────────────────────────────
-function kvReady() { return !!(KV_URL && KV_TOKEN); }
+function kvReady() {
+  // Re-read env vars at call time (not just module load time)
+  const url   = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  return !!(url && token && url.startsWith("https://"));
+}
 
 async function kvGet(key: string): Promise<any> {
-  if (!kvReady()) return null;
+  const url   = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return null;
   try {
-    const res = await fetch(`${KV_URL}/get/${key}`, {
-      headers: { Authorization: `Bearer ${KV_TOKEN}` }, cache: "no-store",
+    const res = await fetch(`${url}/get/${key}`, {
+      headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
     });
     return res.ok ? res.json() : null;
   } catch { return null; }
 }
 
 async function kvSet(key: string, value: string): Promise<boolean> {
-  if (!kvReady()) return false;
+  const url   = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return false;
   try {
-    const res = await fetch(`${KV_URL}/set/${key}`, {
+    const res = await fetch(`${url}/set/${key}`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${KV_TOKEN}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ value }),
       cache: "no-store",
     });
