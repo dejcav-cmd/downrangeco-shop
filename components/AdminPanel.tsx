@@ -1017,8 +1017,16 @@ function HeroUploadTab({adminKey,showToast,setImages}:{adminKey:string;showToast
 
   const [uploaded, setUploaded] = useState<string|null>(null);
 
+  const MAX_MB = 4;
+  const [uploadErr, setUploadErr] = useState<string|null>(null);
+
   const upload = async()=>{
     if(!file) return;
+    setUploadErr(null);
+    if(file.size > MAX_MB * 1024 * 1024){
+      setUploadErr(`Image is ${(file.size/1024/1024).toFixed(1)}MB — over the ${MAX_MB}MB limit. Compress it first at squoosh.app or tinypng.com.`);
+      return;
+    }
     setUploading(true);
     setUploaded(null);
     try {
@@ -1026,20 +1034,23 @@ function HeroUploadTab({adminKey,showToast,setImages}:{adminKey:string;showToast
       fd.append("file", file);
       fd.append("filename", filename);
       const r = await fetch("/api/upload/hero",{method:"POST",headers:{"x-admin-key":adminKey},body:fd});
-      // Response is always JSON from our fixed route
       let d: any = {};
-      try { d = await r.json(); } catch(jsonErr) {
-        throw new Error(`Server returned non-JSON (HTTP ${r.status}). Check GH_TOKEN is set in Vercel env vars.`);
+      try { d = await r.json(); } catch {
+        if(r.status===413) throw new Error("Image too large (413). Compress to under 4MB at squoosh.app then retry.");
+        throw new Error(`Server error HTTP ${r.status}`);
       }
       if(!r.ok) throw new Error(d.error ?? `HTTP ${r.status}`);
       setUploaded(d.path ?? `/${filename}`);
       setFile(null); setPreview(null);
       showToast(`✓ Uploaded as ${d.path} — Vercel redeploying (~60s)`);
-      // Reload image list so dropdown in slide editor shows the new image
       fetch("/api/admin/images",{headers:{"x-admin-key":adminKey},cache:"no-store"}).then(r=>r.json()).then(d=>{ if(d.images) setImages(d.images); }).catch(()=>{});
-    } catch(e:any){ showToast(e.message,"err"); }
+    } catch(e:any){
+      setUploadErr(e.message);
+      showToast(e.message,"err");
+    }
     finally{ setUploading(false); }
   };
+
 
   return (
     <div style={{maxWidth:520}}>
@@ -1048,6 +1059,7 @@ function HeroUploadTab({adminKey,showToast,setImages}:{adminKey:string;showToast
       </div>
       <SideCard title="Select Image">
         <input type="file" accept="image/*" onChange={onFile} style={{color:S.text,marginBottom:12,display:"block"}}/>
+        {file&&<div style={{...mono(8),color:file.size>4*1024*1024?"#e08080":S.greenText,marginBottom:6}}>{(file.size/1024/1024).toFixed(2)}MB {file.size>4*1024*1024?"— TOO LARGE (max 4MB)":"— OK"}</div>}
         {preview&&<img src={preview} alt="preview" style={{width:"100%",height:160,objectFit:"cover",marginBottom:12}}/>}
       </SideCard>
       {file&&(
@@ -1057,6 +1069,18 @@ function HeroUploadTab({adminKey,showToast,setImages}:{adminKey:string;showToast
             Will be available at <span style={{color:S.gold}}>/{filename}</span> — use this path in the slide Image field.
           </div>
         </SideCard>
+      )}
+      {uploadErr&&(
+        <div style={{marginTop:12,background:"rgba(184,64,64,0.1)",border:"1px solid rgba(184,64,64,0.35)",padding:14}}>
+          <div style={{...mono(9),color:"#e08080",marginBottom:6}}>✗ Upload failed</div>
+          <div style={{fontSize:12,color:"#e08080",lineHeight:1.6,whiteSpace:"pre-wrap"}}>{uploadErr}</div>
+          <div style={{...mono(8),color:S.muted,marginTop:10}}>
+            Compress your image at:{" "}
+            <a href="https://squoosh.app" target="_blank" rel="noopener noreferrer" style={{color:S.gold}}>squoosh.app</a>{" · "}
+            <a href="https://tinypng.com" target="_blank" rel="noopener noreferrer" style={{color:S.gold}}>tinypng.com</a>{" · "}
+            <a href="https://imagecompressor.com" target="_blank" rel="noopener noreferrer" style={{color:S.gold}}>imagecompressor.com</a>
+          </div>
+        </div>
       )}
       <div style={{marginTop:14,display:"flex",alignItems:"center",gap:12}}>
         <button onClick={upload} disabled={!file||uploading}

@@ -4,6 +4,9 @@ import { writeLog } from "@/lib/opsLogger";
 
 export const dynamic = "force-dynamic";
 
+// Vercel Pro body size limit is 4.5MB — we enforce 4MB to be safe
+const MAX_BYTES = 4 * 1024 * 1024;
+
 const ADMIN_KEY = process.env.ADMIN_KEY ?? "drco-admin-2026";
 const GH_TOKEN  = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN ?? "";
 const GH_REPO   = "dejcav-cmd/downrangeco-shop";
@@ -18,7 +21,6 @@ function ghHeaders() {
   };
 }
 
-// Get SHA of existing file (needed for update, null if new file)
 async function getFileSha(path: string): Promise<string | null> {
   try {
     const res = await fetch(
@@ -32,57 +34,59 @@ async function getFileSha(path: string): Promise<string | null> {
 }
 
 export async function POST(req: NextRequest) {
-  // Rate limit
   const ip = req.headers.get("x-forwarded-for") ?? "unknown";
   const { allowed } = await checkRateLimit(uploadRatelimit, `upload:${ip}`);
   if (!allowed) return NextResponse.json({ error: "Rate limit exceeded — max 5 uploads/hour" }, { status: 429 });
 
-  // Auth
-  if (req.headers.get("x-admin-key") !== ADMIN_KEY) {
+  if (req.headers.get("x-admin-key") !== ADMIN_KEY)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
-  if (!GH_TOKEN) {
+  if (!GH_TOKEN)
     return NextResponse.json({ error: "GH_TOKEN not set in Vercel environment variables" }, { status: 500 });
+
+  // Check content-length header before reading body
+  const contentLength = parseInt(req.headers.get("content-length") ?? "0");
+  if (contentLength > MAX_BYTES) {
+    return NextResponse.json({
+      error: `File too large (${(contentLength / 1024 / 1024).toFixed(1)}MB). Please compress the image to under 4MB before uploading. Use squoosh.app or tinypng.com to reduce file size.`,
+    }, { status: 413 });
   }
 
   try {
-    // Parse FormData
     const formData = await req.formData();
     const file     = formData.get("file") as File | null;
     let   filename = (formData.get("filename") as string | null)?.trim();
 
-    if (!file)                          return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    if (!file)                           return NextResponse.json({ error: "No file provided" }, { status: 400 });
     if (!file.type.startsWith("image/")) return NextResponse.json({ error: "File must be an image" }, { status: 400 });
-    if (file.size > 10 * 1024 * 1024)   return NextResponse.json({ error: "Max file size is 10MB" }, { status: 400 });
 
-    // Sanitise filename — keep it safe for GitHub path
-    if (!filename) filename = file.name;
-    filename = filename
-      .replace(/[^a-zA-Z0-9._-]/g, "-")  // only safe chars
-      .replace(/^-+|-+$/g, "")           // no leading/trailing dashes
-      .toLowerCase();
-    if (!filename.match(/\.(jpg|jpeg|png|webp|gif)$/i)) {
-      filename += ".jpg";
+    // Double-check actual size after parse
+    if (file.size > MAX_BYTES) {
+      const mb = (file.size / 1024 / 1024).toFixed(1);
+      return NextResponse.json({
+        error: `Image is ${mb}MB — too large for direct upload. Compress it to under 4MB first.\n\nFree tools:\n• squoosh.app (best quality control)\n• tinypng.com (drag & drop)\n• imagecompressor.com\n\nFor hero images, 1920×1080px at 80% JPEG quality is ideal (~300-600KB).`,
+      }, { status: 413 });
     }
 
-    // Always save under public/ so Next.js can serve it
-    const ghPath = `public/${filename}`;
+    // Sanitise filename
+    if (!filename) filename = file.name;
+    filename = filename
+      .replace(/[^a-zA-Z0-9._-]/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .toLowerCase();
+    if (!filename.match(/\.(jpg|jpeg|png|webp|gif)$/i)) filename += ".jpg";
 
-    // Convert to base64
+    const ghPath = `public/${filename}`;
     const bytes  = await file.arrayBuffer();
     const base64 = Buffer.from(bytes).toString("base64");
+    const sha    = await getFileSha(ghPath);
 
-    // Get existing file SHA (null = new file, ok to omit sha)
-    const sha = await getFileSha(ghPath);
-
-    // Commit to GitHub
     const commitBody: any = {
-      message: `Hero image upload: ${filename} (via admin panel)`,
+      message: `Hero image upload: ${filename} via admin panel`,
       content: base64,
       branch:  GH_BRANCH,
     };
-    if (sha) commitBody.sha = sha; // required for updates, must NOT include for new files
+    if (sha) commitBody.sha = sha;
 
     const commitRes = await fetch(
       `https://api.github.com/repos/${GH_REPO}/contents/${ghPath}`,
@@ -100,17 +104,23 @@ export async function POST(req: NextRequest) {
     await writeLog({
       level: "ok", job: "hero-upload",
       message: `Hero image uploaded: ${filename}`,
-      detail: `${(file.size / 1024).toFixed(0)}KB → public/${filename} committed to GitHub`,
+      detail: `${(file.size / 1024).toFixed(0)}KB → public/${filename} committed`,
     });
 
     return NextResponse.json({
       ok:       true,
       filename: filename,
       path:     `/${filename}`,
-      message:  `Uploaded successfully. Use /${filename} as the slide image path. Vercel will redeploy in ~60 seconds.`,
+      message:  `Uploaded! Use /${filename} as the slide image path. Vercel will redeploy in ~60s.`,
     });
 
   } catch (e: any) {
+    // Catch the 413 from Vercel's own body parser before we even read it
+    if (e.message?.includes("413") || e.message?.toLowerCase().includes("too large") || e.message?.toLowerCase().includes("body")) {
+      return NextResponse.json({
+        error: "Image is too large for direct upload (Vercel 4.5MB limit). Please compress the image first.\n\nFree tools: squoosh.app · tinypng.com · imagecompressor.com\n\nTarget: 1920×1080px, JPEG 80% quality (~300-600KB).",
+      }, { status: 413 });
+    }
     await writeLog({ level: "error", job: "hero-upload", message: "Upload exception", detail: e.message });
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
