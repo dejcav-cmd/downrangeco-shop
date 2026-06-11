@@ -994,20 +994,28 @@ function HeroUploadTab({adminKey,showToast}:{adminKey:string;showToast:(m:string
     setFilename(name.startsWith("hero")?name:`hero-${name}`);
   };
 
+  const [uploaded, setUploaded] = useState<string|null>(null);
+
   const upload = async()=>{
     if(!file) return;
     setUploading(true);
+    setUploaded(null);
     try {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("filename", filename);
       const r = await fetch("/api/upload/hero",{method:"POST",headers:{"x-admin-key":adminKey},body:fd});
-      const d = await r.json();
-      if(!r.ok) throw new Error(d.error??`HTTP ${r.status}`);
-      showToast(`Uploaded! Use /${filename} as the slide image path. Vercel will redeploy in ~60s.`);
+      // Response is always JSON from our fixed route
+      let d: any = {};
+      try { d = await r.json(); } catch(jsonErr) {
+        throw new Error(`Server returned non-JSON (HTTP ${r.status}). Check GH_TOKEN is set in Vercel env vars.`);
+      }
+      if(!r.ok) throw new Error(d.error ?? `HTTP ${r.status}`);
+      setUploaded(d.path ?? `/${filename}`);
       setFile(null); setPreview(null);
-    } catch(e:any){showToast(e.message,"err");}
-    finally{setUploading(false);}
+      showToast(`✓ Uploaded as ${d.path} — Vercel redeploying (~60s)`);
+    } catch(e:any){ showToast(e.message,"err"); }
+    finally{ setUploading(false); }
   };
 
   return (
@@ -1027,12 +1035,21 @@ function HeroUploadTab({adminKey,showToast}:{adminKey:string;showToast:(m:string
           </div>
         </SideCard>
       )}
-      <div style={{marginTop:14}}>
+      <div style={{marginTop:14,display:"flex",alignItems:"center",gap:12}}>
         <button onClick={upload} disabled={!file||uploading}
           style={{...mono(11),background:S.gold,color:S.bg,padding:"10px 24px",border:"none",cursor:!file||uploading?"not-allowed":"pointer",fontWeight:700,opacity:!file||uploading?0.6:1}}>
           {uploading?"Uploading...":"⬆ Upload Image"}
         </button>
+        {uploading&&<div style={{...mono(9),color:S.muted}}>Committing to GitHub...</div>}
       </div>
+      {uploaded&&(
+        <div style={{marginTop:14,background:"rgba(22,163,74,0.08)",border:"1px solid rgba(22,163,74,0.3)",padding:14}}>
+          <div style={{...mono(9),color:S.greenText,marginBottom:6}}>✓ Upload successful</div>
+          <div style={{...mono(8),color:S.muted,marginBottom:8}}>Image path (use in slide Image field):</div>
+          <div style={{fontFamily:"monospace",fontSize:13,color:S.gold,background:S.bg3,padding:"8px 12px",border:`1px solid ${S.border}`,userSelect:"all"}}>{uploaded}</div>
+          <div style={{...mono(8),color:S.muted,marginTop:8}}>Vercel is redeploying — image will be live in ~60 seconds. Then go to Slides tab and set image to <span style={{color:S.gold}}>{uploaded}</span></div>
+        </div>
+      )}
       <div style={{marginTop:20,background:S.bg3,border:`1px solid ${S.border}`,padding:14}}>
         <div style={{...mono(8),color:S.gold,marginBottom:8}}>Existing hero images</div>
         {["/hero.jpg","/hero-2.jpg","/hero-3.jpg"].map(p=>(

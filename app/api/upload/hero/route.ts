@@ -2,69 +2,116 @@ import { NextRequest, NextResponse } from "next/server";
 import { uploadRatelimit, checkRateLimit } from "@/lib/ratelimit";
 import { writeLog } from "@/lib/opsLogger";
 
-const ADMIN_KEY  = process.env.ADMIN_KEY ?? "drco-admin-2026";
-const GH_TOKEN   = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN ?? "";
-const GH_REPO    = "dejcav-cmd/downrangeco-shop";
-const GH_PATH    = "public/hero.jpg";
-const GH_BRANCH  = "main";
-const GH_API     = `https://api.github.com/repos/${GH_REPO}/contents/${GH_PATH}`;
+export const dynamic = "force-dynamic";
+
+const ADMIN_KEY = process.env.ADMIN_KEY ?? "drco-admin-2026";
+const GH_TOKEN  = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN ?? "";
+const GH_REPO   = "dejcav-cmd/downrangeco-shop";
+const GH_BRANCH = "main";
+
+function ghHeaders() {
+  return {
+    Authorization: `Bearer ${GH_TOKEN}`,
+    Accept: "application/vnd.github+json",
+    "Content-Type": "application/json",
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+}
+
+// Get SHA of existing file (needed for update, null if new file)
+async function getFileSha(path: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${GH_REPO}/contents/${path}?ref=${GH_BRANCH}`,
+      { headers: ghHeaders(), cache: "no-store" }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.sha ?? null;
+  } catch { return null; }
+}
 
 export async function POST(req: NextRequest) {
+  // Rate limit
   const ip = req.headers.get("x-forwarded-for") ?? "unknown";
   const { allowed } = await checkRateLimit(uploadRatelimit, `upload:${ip}`);
-  if (!allowed) return NextResponse.json({ error: "Upload rate limit exceeded" }, { status: 429 });
-  const key = req.headers.get("x-admin-key");
-  if (key !== ADMIN_KEY) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!allowed) return NextResponse.json({ error: "Rate limit exceeded — max 5 uploads/hour" }, { status: 429 });
+
+  // Auth
+  if (req.headers.get("x-admin-key") !== ADMIN_KEY) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!GH_TOKEN) {
+    return NextResponse.json({ error: "GH_TOKEN not set in Vercel environment variables" }, { status: 500 });
+  }
 
   try {
+    // Parse FormData
     const formData = await req.formData();
-    const file = formData.get("file") as File;
-    if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
-    if (!file.type.startsWith("image/")) return NextResponse.json({ error: "Must be an image file" }, { status: 400 });
-    if (file.size > 10 * 1024 * 1024) return NextResponse.json({ error: "Max file size is 10MB" }, { status: 400 });
+    const file     = formData.get("file") as File | null;
+    let   filename = (formData.get("filename") as string | null)?.trim();
 
-    if (!GH_TOKEN) return NextResponse.json({ error: "GH_TOKEN not configured in Vercel env vars" }, { status: 500 });
+    if (!file)                          return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    if (!file.type.startsWith("image/")) return NextResponse.json({ error: "File must be an image" }, { status: 400 });
+    if (file.size > 10 * 1024 * 1024)   return NextResponse.json({ error: "Max file size is 10MB" }, { status: 400 });
 
-    // Convert to base64
-    const bytes = await file.arrayBuffer();
-    const base64 = Buffer.from(bytes).toString("base64");
-
-    // Get current file SHA (needed for update)
-    const shaRes = await fetch(GH_API, {
-      headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: "application/vnd.github+json" },
-      cache: "no-store",
-    });
-    const shaData = shaRes.ok ? await shaRes.json() : null;
-    const sha = shaData?.sha;
-
-    // Commit the new image to GitHub
-    const commitRes = await fetch(GH_API, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${GH_TOKEN}`,
-        Accept: "application/vnd.github+json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        message: "Update hero image via admin panel",
-        content: base64,
-        branch: GH_BRANCH,
-        ...(sha ? { sha } : {}),
-      }),
-    });
-
-    if (!commitRes.ok) {
-      const err = await commitRes.json();
-      await writeLog({ level:"error", job:"hero-upload", message:"Hero image upload FAILED", detail:err.message });
-      throw new Error(`GitHub commit failed: ${err.message}`);
+    // Sanitise filename — keep it safe for GitHub path
+    if (!filename) filename = file.name;
+    filename = filename
+      .replace(/[^a-zA-Z0-9._-]/g, "-")  // only safe chars
+      .replace(/^-+|-+$/g, "")           // no leading/trailing dashes
+      .toLowerCase();
+    if (!filename.match(/\.(jpg|jpeg|png|webp|gif)$/i)) {
+      filename += ".jpg";
     }
 
-    await writeLog({ level:"ok", job:"hero-upload", message:"Hero image committed to GitHub", detail:`File: ${file.name} · ${(file.size/1024).toFixed(0)}KB → auto-redeploy triggered` });
-    return NextResponse.json({
-      ok: true,
-      message: "Hero image committed to GitHub. Vercel will redeploy in ~60 seconds.",
+    // Always save under public/ so Next.js can serve it
+    const ghPath = `public/${filename}`;
+
+    // Convert to base64
+    const bytes  = await file.arrayBuffer();
+    const base64 = Buffer.from(bytes).toString("base64");
+
+    // Get existing file SHA (null = new file, ok to omit sha)
+    const sha = await getFileSha(ghPath);
+
+    // Commit to GitHub
+    const commitBody: any = {
+      message: `Hero image upload: ${filename} (via admin panel)`,
+      content: base64,
+      branch:  GH_BRANCH,
+    };
+    if (sha) commitBody.sha = sha; // required for updates, must NOT include for new files
+
+    const commitRes = await fetch(
+      `https://api.github.com/repos/${GH_REPO}/contents/${ghPath}`,
+      { method: "PUT", headers: ghHeaders(), body: JSON.stringify(commitBody) }
+    );
+
+    if (!commitRes.ok) {
+      const errText = await commitRes.text();
+      let   errMsg  = `GitHub API ${commitRes.status}`;
+      try   { errMsg = JSON.parse(errText).message ?? errMsg; } catch {}
+      await writeLog({ level: "error", job: "hero-upload", message: "Upload failed", detail: errMsg });
+      return NextResponse.json({ error: errMsg }, { status: 500 });
+    }
+
+    await writeLog({
+      level: "ok", job: "hero-upload",
+      message: `Hero image uploaded: ${filename}`,
+      detail: `${(file.size / 1024).toFixed(0)}KB → public/${filename} committed to GitHub`,
     });
+
+    return NextResponse.json({
+      ok:       true,
+      filename: filename,
+      path:     `/${filename}`,
+      message:  `Uploaded successfully. Use /${filename} as the slide image path. Vercel will redeploy in ~60 seconds.`,
+    });
+
   } catch (e: any) {
+    await writeLog({ level: "error", job: "hero-upload", message: "Upload exception", detail: e.message });
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
