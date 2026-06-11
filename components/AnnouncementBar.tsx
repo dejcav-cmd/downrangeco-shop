@@ -17,11 +17,12 @@ export default function AnnouncementBar() {
     <div style={{
       background: "var(--bg3)",
       borderBottom: "1px solid rgba(200,146,42,0.2)",
-      height: "32px",
+      height: "38px",
       overflow: "hidden",
       position: "relative",
       display: "flex",
       alignItems: "center",
+      paddingTop: "6px",
     }}>
       {/* Fade edges */}
       <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "80px", background: "linear-gradient(to right, var(--bg3), transparent)", zIndex: 2, pointerEvents: "none" }} />
