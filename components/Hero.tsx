@@ -160,7 +160,7 @@ export default function Hero() {
         </p>
 
         {/* CTA row + inline slide nav */}
-        <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginBottom:20, alignItems:"center" }}>
+        <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginBottom:20, alignItems:"center", justifyContent:"space-between", maxWidth:640 }}>
           <a href={slide.cta_primary_url ?? "/products"}
             style={{ background:"#C8922A", color:"#09090B", fontFamily:"var(--font-mono)", fontSize:12, fontWeight:600, letterSpacing:"0.12em", textTransform:"uppercase", padding:"14px 30px", textDecoration:"none", display:"inline-block", transition:"background 0.2s, transform 0.1s" }}
             onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="#E5A83A";(e.currentTarget as HTMLElement).style.transform="translateY(-1px)"}}
@@ -175,7 +175,7 @@ export default function Hero() {
           </a>
 
           {slides.length > 1 && (
-            <div style={{ display:"flex", gap:6, alignItems:"center", marginLeft:4 }}>
+            <div style={{ display:"flex", gap:6, alignItems:"center", marginLeft:"auto" }}>
               <button onClick={()=>goTo((current-1+slides.length)%slides.length)}
                 style={{ width:30,height:30,background:"rgba(0,0,0,0.45)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,transition:"all 0.15s",flexShrink:0 }}
                 onMouseEnter={e=>(e.currentTarget as HTMLElement).style.borderColor="#C8922A"}
