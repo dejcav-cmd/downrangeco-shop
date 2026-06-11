@@ -1,56 +1,89 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const SHOPIFY_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN!;
-const ADMIN_TOKEN = process.env.SHOPIFY_ADMIN_TOKEN!;
-const ADMIN_KEY   = process.env.ADMIN_KEY ?? "drco-admin-2026";
-const ADMIN_BASE  = `https://${SHOPIFY_DOMAIN}/admin/api/2024-01`;
+const SHOPIFY_DOMAIN  = process.env.SHOPIFY_STORE_DOMAIN!;
+const CLIENT_ID       = process.env.SHOPIFY_ADMIN_CLIENT_ID!;
+const CLIENT_SECRET   = process.env.SHOPIFY_ADMIN_CLIENT_SECRET!;
+const ADMIN_KEY       = process.env.ADMIN_KEY ?? "drco-admin-2026";
+const ADMIN_BASE      = `https://${SHOPIFY_DOMAIN}/admin/api/2024-01`;
 
-function auth(req: NextRequest) {
-  const key = req.headers.get("x-admin-key") ?? req.nextUrl.searchParams.get("key");
-  return key === ADMIN_KEY;
+// ── Token cache (in-memory, per serverless instance) ──────────────────
+let cachedToken: string | null = null;
+let tokenExpiry: number = 0;
+
+async function getAccessToken(): Promise<string> {
+  // Return cached token if still valid (with 60s buffer)
+  if (cachedToken && Date.now() < tokenExpiry - 60_000) return cachedToken;
+
+  const res = await fetch(
+    `https://${SHOPIFY_DOMAIN}/admin/oauth/access_token`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+        grant_type: "client_credentials",
+      }),
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Token exchange failed ${res.status}: ${text.slice(0, 200)}`);
+  }
+
+  const data = await res.json();
+  cachedToken = data.access_token;
+  // Tokens expire in ~24h; cache for 23h
+  tokenExpiry = Date.now() + (data.expires_in ?? 86400) * 1000;
+  return cachedToken!;
 }
 
 async function shopifyAdmin(path: string, opts: RequestInit = {}) {
+  const token = await getAccessToken();
   const res = await fetch(`${ADMIN_BASE}${path}`, {
     ...opts,
     headers: {
       "Content-Type": "application/json",
-      "X-Shopify-Access-Token": ADMIN_TOKEN,
+      "X-Shopify-Access-Token": token,
       ...(opts.headers ?? {}),
     },
     cache: "no-store",
   });
+
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Shopify ${res.status}: ${text.slice(0, 200)}`);
+    throw new Error(`Shopify ${res.status}: ${text.slice(0, 300)}`);
   }
-  // DELETE returns 200 with no body
   const text = await res.text();
   return text ? JSON.parse(text) : {};
+}
+
+function auth(req: NextRequest) {
+  return req.headers.get("x-admin-key") === ADMIN_KEY;
 }
 
 export async function GET(req: NextRequest) {
   if (!auth(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const action  = req.nextUrl.searchParams.get("action") ?? "products";
-  const page    = req.nextUrl.searchParams.get("page") ?? "1";
-  const id      = req.nextUrl.searchParams.get("id");
-  const limit   = 20;
-  const offset  = (parseInt(page) - 1) * limit;
+  const action = req.nextUrl.searchParams.get("action") ?? "products";
+  const page   = req.nextUrl.searchParams.get("page") ?? "1";
+  const id     = req.nextUrl.searchParams.get("id");
 
   try {
     switch (action) {
       case "products": {
-        const data = await shopifyAdmin(`/products.json?limit=${limit}&page_info=&fields=id,title,status,variants,images,product_type,tags,vendor,handle,body_html`);
+        const data  = await shopifyAdmin(`/products.json?limit=20&fields=id,title,status,variants,images,product_type,tags,vendor,handle,body_html`);
         const count = await shopifyAdmin("/products/count.json");
-        return NextResponse.json({ products: data.products, total: count.count, page: parseInt(page), limit });
+        return NextResponse.json({ products: data.products, total: count.count, page: parseInt(page) });
       }
       case "product": {
         const data = await shopifyAdmin(`/products/${id}.json`);
         return NextResponse.json(data.product);
       }
       case "orders": {
-        const data = await shopifyAdmin(`/orders.json?limit=${limit}&status=any&fields=id,name,email,financial_status,fulfillment_status,total_price,created_at,line_items,shipping_address`);
+        const data  = await shopifyAdmin(`/orders.json?limit=20&status=any&fields=id,name,email,financial_status,fulfillment_status,total_price,created_at,line_items,shipping_address`);
         const count = await shopifyAdmin("/orders/count.json?status=any");
         return NextResponse.json({ orders: data.orders, total: count.count });
       }
@@ -63,10 +96,6 @@ export async function GET(req: NextRequest) {
         const smart  = await shopifyAdmin("/smart_collections.json?limit=50&fields=id,title,handle,image,products_count");
         return NextResponse.json({ collections: [...custom.custom_collections, ...smart.smart_collections] });
       }
-      case "inventory": {
-        const data = await shopifyAdmin(`/products/${id}/variants.json`);
-        return NextResponse.json(data.variants);
-      }
       default:
         return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }
@@ -77,12 +106,12 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   if (!auth(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const body = await req.json();
-  const { action, id, data: payload } = body;
+  const { action, id, data: payload, variantId } = body;
 
   try {
     switch (action) {
-      // ── Product CRUD ─────────────────────────────────────────────
       case "update_product": {
         const data = await shopifyAdmin(`/products/${id}.json`, {
           method: "PUT",
@@ -108,19 +137,12 @@ export async function POST(req: NextRequest) {
         });
         return NextResponse.json(data.product);
       }
-      // ── Variant updates ──────────────────────────────────────────
       case "update_variant": {
-        const variantId = body.variantId;
         const data = await shopifyAdmin(`/variants/${variantId}.json`, {
           method: "PUT",
           body: JSON.stringify({ variant: payload }),
         });
         return NextResponse.json(data.variant);
-      }
-      // ── Order actions ────────────────────────────────────────────
-      case "cancel_order": {
-        const data = await shopifyAdmin(`/orders/${id}/cancel.json`, { method: "POST", body: "{}" });
-        return NextResponse.json(data);
       }
       default:
         return NextResponse.json({ error: "Unknown action" }, { status: 400 });
