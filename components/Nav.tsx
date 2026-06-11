@@ -1,10 +1,8 @@
 "use client";
 import { useCart } from "@/context/CartContext";
-import { useAuth } from "@/context/AuthContext";
 
 export default function Nav() {
   const { cart, setCartOpen } = useCart();
-  const { customer } = useAuth();
   const qty = cart?.totalQuantity ?? 0;
 
   return (
@@ -38,13 +36,13 @@ export default function Nav() {
 
       <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
         {/* Account */}
-        <a href={customer ? "/account/dashboard" : "/account"}
+        <a href="https://shopify.com/83728892116/account" target="_blank" rel="noopener noreferrer"
           style={{ display: "flex", alignItems: "center", gap: "6px", background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "var(--muted)", fontFamily: "var(--font-mono)", fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", padding: "8px 14px", textDecoration: "none", transition: "all 0.2s" }}
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(200,146,42,0.28)"; (e.currentTarget as HTMLElement).style.color = "var(--gold)"; }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.08)"; (e.currentTarget as HTMLElement).style.color = "var(--muted)"; }}
         >
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.2"/><path d="M1.5 11.5c0-2.485 2.239-4.5 5-4.5s5 2.015 5 4.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
-          {customer ? customer.firstName : "Account"}
+          "Account"
         </a>
 
         {/* Cart */}
