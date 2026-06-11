@@ -907,30 +907,43 @@ function PagesTab({adminKey,showToast}:any){
 
 // ── Ops Tab ──────────────────────────────────────────────────────────
 function OpsTab({ adminKey }: { adminKey: string }) {
-  const [health,  setHealth]  = useState<any>(null);
-  const [logs,    setLogs]    = useState<any[]>([]);
-  const [stats,   setStats]   = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
-  const [filter,  setFilter]  = useState("all");
-  const [lastRefresh, setLR]  = useState("");
+  const [health,      setHealth]      = useState<any>(null);
+  const [logs,        setLogs]        = useState<any[]>([]);
+  const [stats,       setStats]       = useState<any>(null);
+  const [loading,     setLoading]     = useState(true);
+  const [syncing,     setSyncing]     = useState(false);
+  const [logFilter,   setLogFilter]   = useState("all");
+  const [logSearch,   setLogSearch]   = useState("");
+  const [lastRefresh, setLR]          = useState("");
+  const [smsTab,      setSmsTab]      = useState<"all"|"sent"|"skipped"|"failed">("all");
+  const [expanded,    setExpanded]    = useState<string|null>(null);
+  const [smsSearch,   setSmsSearch]   = useState("");
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [testing,     setTesting]     = useState(false);
+  const [testResult,  setTestResult]  = useState<any>(null);
+  const timerRef = useRef<any>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = React.useCallback(async (silent=false) => {
+    if (!silent) setLoading(true);
     try {
       const [h, l] = await Promise.all([
-        fetch(`/api/ops/health?key=${adminKey}`, { cache:"no-store" }).then(r=>r.json()).catch(()=>({})),
-        fetch(`/api/ops/alert?key=${adminKey}&count=500`, { cache:"no-store" }).then(r=>r.json()).catch(()=>({})),
+        fetch(`/api/ops/health?key=${adminKey}`,         { cache:"no-store" }).then(r=>r.json()).catch(()=>({})),
+        fetch(`/api/ops/alert?key=${adminKey}&count=500`,{ cache:"no-store" }).then(r=>r.json()).catch(()=>({})),
       ]);
       setHealth(h);
       setLogs(l.logs ?? []);
       setStats(l.stats ?? {});
       setLR(new Date().toLocaleTimeString());
     } catch {}
-    finally { setLoading(false); }
+    finally { if (!silent) setLoading(false); }
   }, [adminKey]);
 
-  useEffect(() => { load(); const t = setInterval(load, 30_000); return () => clearInterval(t); }, [load]);
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (!autoRefresh) { clearInterval(timerRef.current); return; }
+    timerRef.current = setInterval(() => load(true), 15_000);
+    return () => clearInterval(timerRef.current);
+  }, [autoRefresh, load]);
 
   const forceSync = async () => {
     setSyncing(true);
@@ -939,14 +952,12 @@ function OpsTab({ adminKey }: { adminKey: string }) {
   };
 
   const testSMS = async () => {
+    setTesting(true); setTestResult(null);
     const r = await fetch("/api/ops/test-sms", { method:"POST", headers:{"x-admin-key":adminKey,"Content-Type":"application/json"}, body:"{}" });
     const d = await r.json();
-    setTimeout(load, 800); // reload log after SMS attempt
-    if (!d.sent) {
-      alert(`❌ SMS failed\nCode: ${d.twilio_code ?? "—"}\nError: ${d.twilio_error ?? "unknown"}\nFrom: ${d.config?.from_value}\nTo: ${d.config?.to_value}`);
-    } else {
-      alert(`✅ SMS sent!\nSID: ${d.twilio_sid}\nTo: ${d.config?.to_value}`);
-    }
+    setTestResult(d);
+    setTesting(false);
+    setTimeout(() => load(true), 1000);
   };
 
   const clearLog = async () => {
@@ -955,34 +966,102 @@ function OpsTab({ adminKey }: { adminKey: string }) {
     await load();
   };
 
-  // colours
-  const sc = (s:string) => s==="ok"||s==="healthy" ? S.greenText : s==="warn"||s==="partial" ? "#e0a830" : "#e08080";
-  const lc = (l:string): string => ({ok:S.greenText,info:"#8888dd",warn:"#e0a830",error:"#e08080",critical:"#ff5555"}[l] ?? S.muted);
-  const li = (l:string): string => ({ok:"✓",info:"·",warn:"△",error:"✗",critical:"!"}[l] ?? "·");
+  // style helpers
+  const sc  = (s:string) => s==="ok"||s==="healthy" ? S.greenText : s==="warn"||s==="partial" ? "#e0a830" : "#e08080";
+  const lc  = (l:string): string => ({ok:S.greenText,info:"#8888dd",warn:"#e0a830",error:"#e08080",critical:"#ff5555"}[l] ?? S.muted);
+  const li  = (l:string): string => ({ok:"✓",info:"·",warn:"△",error:"✗",critical:"!"}[l] ?? "·");
   const rowBg = (l:string) => l==="error"||l==="critical" ? "rgba(184,64,64,0.08)" : l==="warn" ? "rgba(180,120,20,0.05)" : l==="ok" ? "rgba(22,163,74,0.04)" : S.card;
 
-  // job filter chips
+  // SMS log derivation — all SMS events from the ops log
+  const allSmsLogs = logs.filter(l => l.job==="sms" || l.job==="sms-test");
+
+  // Classify each SMS log entry
+  const classify = (l: any): "sent"|"skipped"|"failed" => {
+    if (l.level === "ok") return "sent";
+    const d = (l.detail ?? "") + (l.message ?? "");
+    if (d.includes("cooldown") || d.includes("Cooldown") || d.includes("configured") || d.includes("not configured") || d.includes("skipped") || d.includes("quiet")) return "skipped";
+    return "failed";
+  };
+
+  const sentSms    = allSmsLogs.filter(l => classify(l) === "sent");
+  const skippedSms = allSmsLogs.filter(l => classify(l) === "skipped");
+  const failedSms  = allSmsLogs.filter(l => classify(l) === "failed");
+
+  const smsFiltered = allSmsLogs.filter(l => {
+    const c = classify(l);
+    if (smsTab === "sent"    && c !== "sent")    return false;
+    if (smsTab === "skipped" && c !== "skipped") return false;
+    if (smsTab === "failed"  && c !== "failed")  return false;
+    if (smsSearch && !l.message?.includes(smsSearch) && !l.detail?.includes(smsSearch) && !l.job?.includes(smsSearch)) return false;
+    return true;
+  });
+
+  const successRate = allSmsLogs.length ? Math.round((sentSms.length / allSmsLogs.length) * 100) : null;
+
+  // Full ops log filter
   const JOB_FILTERS = ["all","sms","sms-test","auth","cart","admin-api","storefront","pages","hero-upload","product-sync","health-check"];
   const LEVEL_FILTERS = ["error","warn","ok","info"];
-  const filtered = filter==="all" ? logs : logs.filter(l => l.level===filter || l.job===filter);
-  const smsLogs  = logs.filter(l => l.job==="sms" || l.job==="sms-test");
+  const opsFiltered = logFilter === "all"
+    ? logs.filter(l => !logSearch || l.message?.includes(logSearch) || l.job?.includes(logSearch))
+    : logs.filter(l => (l.level===logFilter || l.job===logFilter) && (!logSearch || l.message?.includes(logSearch) || l.job?.includes(logSearch)));
+
+  const lastSent = sentSms[0];
+
+  function SmsStatusBadge({ log }: { log: any }) {
+    const c = classify(log);
+    if (c === "sent")    return <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",letterSpacing:".05em",background:"rgba(34,197,94,.12)",color:"#22c55e",border:"1px solid rgba(34,197,94,.2)"}}>✓ SENT</span>;
+    if (c === "skipped") return <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",letterSpacing:".05em",background:"rgba(59,130,246,.1)",color:"#60a5fa",border:"1px solid rgba(59,130,246,.2)"}}>SKIPPED</span>;
+    return                      <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",letterSpacing:".05em",background:"rgba(239,68,68,.12)",color:"#ef4444",border:"1px solid rgba(239,68,68,.2)"}}>✕ FAILED</span>;
+  }
+
+  function fmtAge(ts:string) {
+    const m = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
+    if (m < 1)    return "just now";
+    if (m < 60)   return `${m}m ago`;
+    if (m < 1440) return `${Math.floor(m/60)}h ago`;
+    return `${Math.floor(m/1440)}d ago`;
+  }
+  function fmtTime(ts:string) {
+    return new Date(ts).toLocaleString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false});
+  }
+
+  // Mini sparkline
+  function Spark() {
+    const recent = allSmsLogs.slice(0, 20).reverse();
+    if (!recent.length) return null;
+    return (
+      <div style={{display:"flex",gap:2,alignItems:"flex-end",height:20}}>
+        {recent.map((l,i) => {
+          const c = classify(l);
+          return <div key={i} style={{width:6,borderRadius:1,minHeight:2,
+            height: c==="sent" ? 18 : c==="skipped" ? 10 : 6,
+            background: c==="sent" ? "#22c55e" : c==="skipped" ? "#60a5fa" : "#ef4444",
+            opacity: 0.4 + (i/recent.length)*0.6}} />;
+        })}
+      </div>
+    );
+  }
 
   return (
     <div>
-      {/* ── Header row ── */}
+      {/* ── Page header ── */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:20,flexWrap:"wrap",gap:10}}>
         <div>
           <div style={{fontFamily:"var(--font-bebas)",fontSize:36,letterSpacing:"0.04em",lineHeight:1}}>
             OPERATIONS <span style={{color:S.gold}}>CENTER</span>
           </div>
-          <div style={{...mono(9),color:S.muted,marginTop:3}}>
-            {loading ? "Loading…" : `${logs.length} events · refreshes every 30s · last: ${lastRefresh}`}
+          <div style={{...mono(9),color:S.muted,marginTop:3,display:"flex",alignItems:"center",gap:8}}>
+            {autoRefresh && <span style={{display:"inline-block",width:6,height:6,borderRadius:"50%",background:"#22c55e",animation:"drPulse 2s ease-in-out infinite"}} />}
+            {loading ? "Loading…" : `${logs.length} events · ${lastRefresh}`}
           </div>
         </div>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-          <button onClick={testSMS}  style={{...mono(9),background:"rgba(42,106,58,0.15)",border:"1px solid rgba(42,106,58,0.35)",color:S.greenText,padding:"7px 13px",cursor:"pointer"}}>📱 Test SMS</button>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+          <label style={{display:"flex",gap:5,alignItems:"center",cursor:"pointer",...mono(8),color:S.muted}}>
+            <input type="checkbox" checked={autoRefresh} onChange={e=>setAutoRefresh(e.target.checked)} style={{accentColor:S.gold}} />
+            auto 15s
+          </label>
           <button onClick={forceSync} disabled={syncing} style={{...mono(9),background:S.goldDim,border:`1px solid ${S.goldBorder}`,color:S.gold,padding:"7px 13px",cursor:"pointer"}}>{syncing?"Syncing…":"⟳ Sync Products"}</button>
-          <button onClick={load}     style={{...mono(9),background:"transparent",border:`1px solid ${S.border}`,color:S.muted,padding:"7px 13px",cursor:"pointer"}}>↻ Refresh</button>
+          <button onClick={()=>load()} style={{...mono(9),background:"transparent",border:`1px solid ${S.border}`,color:S.muted,padding:"7px 13px",cursor:"pointer"}}>↻ Refresh</button>
           <button onClick={clearLog} style={{...mono(9),background:S.redDim,border:"1px solid rgba(184,64,64,0.3)",color:"#e08080",padding:"7px 13px",cursor:"pointer"}}>✕ Clear Log</button>
         </div>
       </div>
@@ -994,8 +1073,8 @@ function OpsTab({ adminKey }: { adminKey: string }) {
             {label:"Total Events",  v:stats.total,       c:S.text},
             {label:"Errors",        v:stats.errors,      c:"#e08080"},
             {label:"Warnings",      v:stats.warnings,    c:"#e0a830"},
-            {label:"SMS Attempts",  v:stats.smsAttempts, c:"#8888dd"},
-            {label:"SMS Failures",  v:stats.smsFailed,   c:"#e08080"},
+            {label:"SMS Sent",      v:sentSms.length,    c:"#22c55e"},
+            {label:"SMS Failed",    v:failedSms.length,  c:failedSms.length>0?"#e08080":S.muted},
             {label:"Cart Actions",  v:stats.cartActions, c:S.gold},
             {label:"Auth Events",   v:stats.authEvents,  c:S.greenText},
           ].map(s=>(
@@ -1007,41 +1086,174 @@ function OpsTab({ adminKey }: { adminKey: string }) {
         </div>
       )}
 
-      {/* ── SMS status block (prominent) ── */}
-      <div style={{marginBottom:20}}>
-        <div style={{...mono(9),color:S.gold,marginBottom:8}}>// SMS Alert Status</div>
-        <div style={{background:S.card,border:`1px solid ${S.border}`,padding:16,display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-          {/* Config */}
-          <div>
-            <div style={{...mono(8),color:S.muted,marginBottom:8}}>Configuration</div>
-            {[
-              ["Account SID",  process.env.TWILIO_ACCOUNT_SID ? "AC***" : "❌ Not set",  !!process.env.TWILIO_ACCOUNT_SID],
-              ["From Number",  "+18777804236",  true],
-              ["Alert To",     "+12066016076",  true],
-            ].map(([k,v,ok])=>(
-              <div key={k as string} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${S.border}`}}>
-                <span style={{...mono(9),color:S.muted}}>{k}</span>
-                <span style={{...mono(9),color:ok?"#6adb8a":"#e08080"}}>{v as string}</span>
+      {/* ══════════════════════════════════════════════════════
+          SMS MANAGEMENT PANEL
+      ══════════════════════════════════════════════════════ */}
+      <div style={{marginBottom:24,border:`1px solid ${S.border}`,background:S.card}}>
+        {/* SMS panel header */}
+        <div style={{padding:"12px 16px",borderBottom:`1px solid ${S.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div style={{fontFamily:"var(--font-bebas)",fontSize:18,letterSpacing:"0.06em",color:S.gold}}>📱 SMS ALERTS</div>
+            <div style={{display:"flex",gap:6}}>
+              {/* Status pill */}
+              <span style={{...mono(8),padding:"3px 9px",background:"rgba(34,197,94,.1)",color:"#22c55e",border:"1px solid rgba(34,197,94,.25)"}}>
+                DownRange-Shop
+              </span>
+              {lastSent && (
+                <span style={{...mono(8),padding:"3px 9px",background:S.bg3,color:S.muted,border:`1px solid ${S.border}`}}>
+                  last sent {fmtAge(lastSent.ts)}
+                </span>
+              )}
+            </div>
+          </div>
+          <div style={{display:"flex",gap:6,alignItems:"center"}}>
+            <button onClick={testSMS} disabled={testing}
+              style={{...mono(9),background:"rgba(42,106,58,0.15)",border:"1px solid rgba(42,106,58,0.35)",color:S.greenText,padding:"7px 13px",cursor:"pointer"}}>
+              {testing ? "Sending…" : "📱 Test SMS"}
+            </button>
+            <a href="/api/ops/test-sms" target="_blank" rel="noopener noreferrer"
+              style={{...mono(8),padding:"7px 13px",background:"transparent",border:`1px solid ${S.border}`,color:S.muted,textDecoration:"none",cursor:"pointer"}}>
+              🔍 Diagnostic
+            </a>
+          </div>
+        </div>
+
+        {/* Test result */}
+        {testResult && (
+          <div style={{padding:"8px 16px",borderBottom:`1px solid ${S.border}`,background:testResult.sent?"rgba(34,197,94,.06)":"rgba(184,64,64,.06)"}}>
+            <span style={{...mono(9),color:testResult.sent?"#22c55e":"#ef4444"}}>
+              {testResult.sent
+                ? `✓ SMS sent · SID: ${testResult.twilio_sid} · Status: ${testResult.twilio_status}`
+                : `✕ Failed · Code: ${testResult.twilio_code ?? "—"} · ${testResult.twilio_error ?? "unknown"}`
+              }
+            </span>
+          </div>
+        )}
+
+        {/* Stats row */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr 1fr",borderBottom:`1px solid ${S.border}`}}>
+          {[
+            {label:"Total SMS Events", v:allSmsLogs.length,  c:S.text},
+            {label:"Sent",             v:sentSms.length,     c:"#22c55e"},
+            {label:"Failed",           v:failedSms.length,   c:failedSms.length>0?"#ef4444":S.muted},
+            {label:"Skipped",          v:skippedSms.length,  c:"#60a5fa"},
+            {label:"Send Rate",        v:successRate!=null?`${successRate}%`:"—", c:successRate!=null&&successRate>=90?"#22c55e":successRate!=null&&successRate>=50?"#e0a830":"#ef4444"},
+          ].map((s,i)=>(
+            <div key={s.label} style={{padding:"10px 14px",borderRight:i<4?`1px solid ${S.border}`:"none",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+              <div>
+                <div style={{fontFamily:"var(--font-bebas)",fontSize:20,color:s.c,letterSpacing:"0.04em",lineHeight:1}}>{s.v}</div>
+                <div style={{...mono(7),color:S.muted,marginTop:3}}>{s.label}</div>
               </div>
+              {i===0 && <Spark />}
+            </div>
+          ))}
+        </div>
+
+        {/* Config strip */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",borderBottom:`1px solid ${S.border}`}}>
+          {[
+            ["Account SID",   "Set ✓",         "#22c55e"],
+            ["From",          "+12062036281",   S.gold  ],
+            ["Alert To",      "+12066016076",   S.gold  ],
+            ["Quiet Hours",   "11pm–7am UTC",   S.muted ],
+          ].map(([k,v,c],i)=>(
+            <div key={k} style={{padding:"8px 14px",borderRight:i<3?`1px solid ${S.border}`:"none"}}>
+              <div style={{...mono(7),color:S.muted,marginBottom:2}}>{k}</div>
+              <div style={{...mono(9),color:c as string}}>{v}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Filter tabs */}
+        <div style={{display:"flex",alignItems:"center",borderBottom:`1px solid ${S.border}`,flexWrap:"wrap",gap:0}}>
+          {([["all","All",allSmsLogs.length,S.gold],["sent","Sent",sentSms.length,"#22c55e"],["failed","Failed",failedSms.length,"#ef4444"],["skipped","Skipped",skippedSms.length,"#60a5fa"]] as const).map(([id,label,count,color])=>(
+            <button key={id} onClick={()=>setSmsTab(id as any)}
+              style={{...mono(9),padding:"8px 16px",background:smsTab===id?S.bg3:"transparent",
+                border:"none",borderBottom:smsTab===id?`2px solid ${S.gold}`:"2px solid transparent",
+                color:smsTab===id?S.gold:S.muted,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
+              {label}
+              <span style={{fontSize:9,padding:"1px 5px",background:S.bg3,color:smsTab===id?(color as string):S.muted}}>{count}</span>
+            </button>
+          ))}
+          <input value={smsSearch} onChange={e=>setSmsSearch(e.target.value)}
+            placeholder="filter…"
+            style={{...mono(8),marginLeft:"auto",marginRight:12,width:130,background:S.bg3,
+              border:`1px solid ${S.border}`,color:S.text,padding:"4px 8px",outline:"none"}} />
+        </div>
+
+        {/* SMS Log table */}
+        <div>
+          {/* Header */}
+          <div style={{display:"grid",gridTemplateColumns:"110px 70px 100px 1fr 60px 24px",padding:"5px 12px",
+            background:"#0a0a0c",borderBottom:`1px solid ${S.border}`}}>
+            {["Timestamp","Status","Job","Message / Detail","Latency",""].map(h=>(
+              <div key={h} style={{...mono(7),color:S.muted}}>{h}</div>
             ))}
           </div>
-          {/* Recent SMS events */}
-          <div>
-            <div style={{...mono(8),color:S.muted,marginBottom:8}}>Recent SMS Events ({smsLogs.length})</div>
-            {smsLogs.length===0 && <div style={{...mono(9),color:S.muted}}>No SMS events yet — click Test SMS</div>}
-            {smsLogs.slice(0,5).map(log=>(
-              <div key={log.id} style={{display:"flex",gap:8,padding:"5px 0",borderBottom:`1px solid ${S.border}`,alignItems:"flex-start"}}>
-                <span style={{...mono(9),color:lc(log.level),flexShrink:0}}>{li(log.level)}</span>
-                <div>
-                  <div style={{fontSize:11,color:S.text}}>{log.message}</div>
-                  {log.detail&&<div style={{fontSize:10,color:S.muted,fontFamily:"monospace"}}>{log.detail}</div>}
-                  <div style={{...mono(7),color:S.muted}}>{new Date(log.ts).toLocaleTimeString()}</div>
-                </div>
+
+          {/* Rows */}
+          <div style={{maxHeight:360,overflowY:"auto"}}>
+            {smsFiltered.length === 0 ? (
+              <div style={{...mono(9),color:S.muted,padding:"28px 0",textAlign:"center"}}>
+                {allSmsLogs.length === 0 ? "No SMS events yet — click Test SMS to verify." : `No ${smsTab} events${smsSearch?` matching "${smsSearch}"`:""}` }
               </div>
-            ))}
+            ) : smsFiltered.map((l:any) => {
+              const isExp = expanded === l.id;
+              const c = classify(l);
+              return (
+                <React.Fragment key={l.id}>
+                  <div onClick={()=>setExpanded(isExp?null:l.id)}
+                    style={{display:"grid",gridTemplateColumns:"110px 70px 100px 1fr 60px 24px",
+                      padding:"7px 12px",borderBottom:`1px solid ${S.border}`,
+                      background:isExp?"#0d0d0f":rowBg(l.level),
+                      cursor:"pointer",alignItems:"center"}}
+                    onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.filter="brightness(1.12)"}}
+                    onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.filter="none"}}>
+                    <div style={{...mono(8),color:S.muted}} title={fmtTime(l.ts)}>{fmtAge(l.ts)}</div>
+                    <SmsStatusBadge log={l} />
+                    <div style={{...mono(8),color:S.gold,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.job}</div>
+                    <div style={{fontSize:11,color:c==="sent"?S.text:c==="skipped"?"#60a5fa":"#e08080",
+                      overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}
+                      title={l.message}>
+                      {l.message}
+                    </div>
+                    <div style={{...mono(8),color:S.muted}}>{l.duration ? `${l.duration}ms` : "—"}</div>
+                    <div style={{...mono(8),color:S.muted,textAlign:"right"}}>{isExp?"▲":"▼"}</div>
+                  </div>
+                  {isExp && (
+                    <div style={{background:"#060a0f",borderBottom:`1px solid ${S.border}`,
+                      padding:"10px 14px 12px",fontSize:10,lineHeight:1.9}}>
+                      <div style={{display:"grid",gridTemplateColumns:"130px 1fr",gap:"3px 12px"}}>
+                        {[
+                          ["Timestamp",    fmtTime(l.ts)],
+                          ["Level",        l.level],
+                          ["Job",          l.job],
+                          ["Full Message", l.message ?? "—"],
+                          l.detail ? ["Detail", l.detail] : null,
+                          l.meta?.twilio_sid    ? ["Twilio SID",    l.meta.twilio_sid]    : null,
+                          l.meta?.twilio_status ? ["Twilio Status", l.meta.twilio_status] : null,
+                          l.meta?.http_status   ? ["HTTP Status",   String(l.meta.http_status)] : null,
+                          l.meta?.twilio_code   ? ["Twilio Error",  `${l.meta.twilio_code}${l.meta.twilio_code===30034?" — Toll-free verification required":l.meta.twilio_code===21608?" — Number not verified":""}`] : null,
+                          l.meta?.from_number   ? ["From",          l.meta.from_number]   : null,
+                          l.meta?.to_number     ? ["To",            l.meta.to_number]     : null,
+                          ["Event ID",     l.id ?? "—"],
+                        ].filter(Boolean).map(([k,v]:any)=>(
+                          <React.Fragment key={k}>
+                            <span style={{...mono(8),color:S.muted}}>{k}</span>
+                            <span style={{fontSize:10,color:k==="Full Message"||k==="Detail"?S.text:k.includes("Error")||k==="HTTP Status"&&parseInt(v)>=400?"#e08080":k==="Twilio SID"||k==="Twilio Status"?"#22c55e":S.muted,
+                              wordBreak:"break-all",whiteSpace:"pre-wrap"}}>{v}</span>
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </React.Fragment>
+              );
+            })}
           </div>
         </div>
       </div>
+      {/* ══ END SMS PANEL ══ */}
 
       {/* ── Health cards ── */}
       {health?.checks && (
@@ -1080,16 +1292,19 @@ function OpsTab({ adminKey }: { adminKey: string }) {
         </div>
       </div>
 
-      {/* ── Full log ── */}
+      {/* ── Full ops log ── */}
       <div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8,flexWrap:"wrap",gap:8}}>
           <div style={{...mono(9),color:S.gold}}>
-            // Full Operations Log — {filtered.length}/{logs.length} events
+            // Full Operations Log — {opsFiltered.length}/{logs.length} events
           </div>
-          <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+            <input value={logSearch} onChange={e=>setLogSearch(e.target.value)}
+              placeholder="search…"
+              style={{...mono(8),width:120,background:S.bg3,border:`1px solid ${S.border}`,color:S.text,padding:"4px 8px",outline:"none"}} />
             {[...LEVEL_FILTERS,...JOB_FILTERS].map(f=>(
-              <button key={f} onClick={()=>setFilter(f)}
-                style={{...mono(7),padding:"3px 7px",background:filter===f?S.goldDim:"transparent",border:`1px solid ${filter===f?S.goldBorder:S.border}`,color:filter===f?S.gold:S.muted,cursor:"pointer"}}>
+              <button key={f} onClick={()=>setLogFilter(f)}
+                style={{...mono(7),padding:"3px 7px",background:logFilter===f?S.goldDim:"transparent",border:`1px solid ${logFilter===f?S.goldBorder:S.border}`,color:logFilter===f?S.gold:S.muted,cursor:"pointer"}}>
                 {f}
               </button>
             ))}
@@ -1097,20 +1312,19 @@ function OpsTab({ adminKey }: { adminKey: string }) {
         </div>
 
         <div style={{border:`1px solid ${S.border}`,maxHeight:520,overflowY:"auto"}}>
-          {/* Header */}
           <div style={{display:"grid",gridTemplateColumns:"150px 65px 120px 1fr 55px",background:"#0a0a0c",padding:"6px 12px",borderBottom:`1px solid ${S.border}`,position:"sticky",top:0,zIndex:2}}>
             {["Timestamp","Level","Job","Message + Detail","ms"].map(h=>(
               <div key={h} style={{...mono(8),color:S.muted}}>{h}</div>
             ))}
           </div>
 
-          {filtered.length===0 && !loading && (
+          {opsFiltered.length===0 && !loading && (
             <div style={{...mono(9),color:S.muted,padding:"28px 0",textAlign:"center"}}>
-              {filter==="all" ? "No events yet — trigger a sync or SMS test to start logging." : `No events matching "${filter}"`}
+              {logFilter==="all" ? "No events yet." : `No events matching "${logFilter}"`}
             </div>
           )}
 
-          {filtered.map(log=>(
+          {opsFiltered.map((log:any)=>(
             <div key={log.id}
               style={{display:"grid",gridTemplateColumns:"150px 65px 120px 1fr 55px",padding:"7px 12px",borderBottom:`1px solid ${S.border}`,background:rowBg(log.level),alignItems:"start"}}
               onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.filter="brightness(1.15)"}}
@@ -1118,27 +1332,28 @@ function OpsTab({ adminKey }: { adminKey: string }) {
             >
               <div style={{...mono(8),color:S.muted,lineHeight:1.5}}>
                 {new Date(log.ts).toLocaleTimeString()}<br/>
-                <span style={{fontSize:9}}>{new Date(log.ts).toLocaleDateString()}</span>
+                <span style={{opacity:.5}}>{new Date(log.ts).toLocaleDateString()}</span>
               </div>
-              <div style={{...mono(9),color:lc(log.level),fontWeight:700}}>{li(log.level)} {log.level?.slice(0,4)?.toUpperCase()}</div>
-              <div style={{...mono(8),color:"#8888dd",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",paddingTop:1}}>{log.job}</div>
-              <div style={{minWidth:0}}>
-                <div style={{fontSize:12,color:log.level==="error"||log.level==="critical"?S.text:S.text,fontWeight:log.level==="error"||log.level==="critical"?600:400,lineHeight:1.4}}>{log.message}</div>
-                {log.detail&&<div style={{fontSize:11,color:S.muted,marginTop:2,fontFamily:"monospace",wordBreak:"break-all",lineHeight:1.3}}>{log.detail}</div>}
-                {log.meta&&Object.keys(log.meta).length>0&&(
-                  <div style={{fontSize:10,color:"#555",marginTop:2,fontFamily:"monospace"}}>
-                    {Object.entries(log.meta).filter(([,v])=>v!=null).map(([k,v])=>`${k}=${v}`).join("  ")}
-                  </div>
-                )}
+              <div style={{display:"flex",alignItems:"center",gap:4}}>
+                <span style={{...mono(9),color:lc(log.level)}}>{li(log.level)}</span>
+                <span style={{...mono(8),color:lc(log.level)}}>{log.level}</span>
               </div>
-              <div style={{...mono(8),color:S.muted,textAlign:"right"}}>{log.duration?`${log.duration}`:""}</div>
+              <div style={{...mono(9),color:S.gold,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{log.job}</div>
+              <div>
+                <div style={{fontSize:11,color:S.text,lineHeight:1.4}}>{log.message}</div>
+                {log.detail && <div style={{fontSize:10,color:S.muted,fontFamily:"monospace",marginTop:2,wordBreak:"break-all"}}>{log.detail}</div>}
+              </div>
+              <div style={{...mono(8),color:S.muted}}>{log.duration ? `${log.duration}ms` : "—"}</div>
             </div>
           ))}
         </div>
       </div>
+
+      <style>{`@keyframes drPulse{0%,100%{opacity:1}50%{opacity:.3}}`}</style>
     </div>
   );
 }
+
 
 
 function Login({keyVal,setKey,login}:any){
