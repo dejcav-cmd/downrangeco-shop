@@ -172,7 +172,7 @@ export default function Hero() {
           {slide.subtitle}
         </p>
 
-        <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginBottom:20 }}>
+        <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginBottom:20, alignItems:"center" }}>
           <a href={slide.cta_primary_url ?? "/products"}
             style={{ background:"#C8922A", color:"#09090B", fontFamily:"var(--font-mono)", fontSize:12, fontWeight:600, letterSpacing:"0.12em", textTransform:"uppercase", padding:"14px 30px", textDecoration:"none", display:"inline-block", transition:"background 0.2s, transform 0.1s" }}
             onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background="#E5A83A";(e.currentTarget as HTMLElement).style.transform="translateY(-1px)"}}
@@ -185,6 +185,28 @@ export default function Hero() {
             onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.35)";(e.currentTarget as HTMLElement).style.color="#F0EDE8"}}>
             {slide.cta_secondary}
           </a>
+          {/* ── Inline slide nav — same row as buttons ── */}
+          {slides.length > 1 && (
+            <div style={{ display:"flex", gap:6, alignItems:"center", marginLeft:4 }}>
+              <button onClick={()=>goTo((current-1+slides.length)%slides.length)}
+                style={{ width:30,height:30,background:"rgba(0,0,0,0.45)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,transition:"all 0.15s",flexShrink:0 }}
+                onMouseEnter={e=>(e.currentTarget as HTMLElement).style.borderColor="#C8922A"}
+                onMouseLeave={e=>(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.15)"}>
+                ‹
+              </button>
+              {slides.map((s, i) => (
+                <button key={s.id} onClick={() => goTo(i)}
+                  style={{ width:i===current?24:8, height:8, borderRadius:4, background:i===current?"#C8922A":"rgba(255,255,255,0.3)", border:"none", cursor:"pointer", padding:0, transition:"all 0.3s ease", flexShrink:0 }}
+                />
+              ))}
+              <button onClick={()=>goTo((current+1)%slides.length)}
+                style={{ width:30,height:30,background:"rgba(0,0,0,0.45)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,transition:"all 0.15s",flexShrink:0 }}
+                onMouseEnter={e=>(e.currentTarget as HTMLElement).style.borderColor="#C8922A"}
+                onMouseLeave={e=>(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.15)"}>
+                ›
+              </button>
+            </div>
+          )}
         </div>
 
         <div style={{ fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"0.20em", textTransform:"uppercase", color:"rgba(200,146,42,0.65)", display:"flex", alignItems:"center", gap:10 }}>
@@ -193,43 +215,11 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* ── Slide controls (only when >1 slide) ── */}
+      {/* ── Progress bar only ── */}
       {slides.length > 1 && (
-        <>
-          {/* Dot indicators */}
-          <div style={{ position:"absolute", bottom:24, right:48, zIndex:5, display:"flex", gap:8, alignItems:"center" }}>
-            {/* Prev */}
-            <button onClick={()=>goTo((current-1+slides.length)%slides.length)}
-              style={{ width:32,height:32,background:"rgba(0,0,0,0.5)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,transition:"all 0.15s" }}
-              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.borderColor="#C8922A"}
-              onMouseLeave={e=>(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.15)"}>
-              ‹
-            </button>
-            {/* Dots */}
-            {slides.map((s, i) => (
-              <button key={s.id} onClick={() => goTo(i)}
-                style={{ width: i===current?24:8, height:8, borderRadius:4, background: i===current?"#C8922A":"rgba(255,255,255,0.3)", border:"none", cursor:"pointer", padding:0, transition:"all 0.3s ease" }}
-              />
-            ))}
-            {/* Next */}
-            <button onClick={()=>goTo((current+1)%slides.length)}
-              style={{ width:32,height:32,background:"rgba(0,0,0,0.5)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,transition:"all 0.15s" }}
-              onMouseEnter={e=>(e.currentTarget as HTMLElement).style.borderColor="#C8922A"}
-              onMouseLeave={e=>(e.currentTarget as HTMLElement).style.borderColor="rgba(255,255,255,0.15)"}>
-              ›
-            </button>
-          </div>
-
-          {/* Slide counter */}
-          <div style={{ position:"absolute", bottom:30, left:48, zIndex:5, fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"0.12em", color:"rgba(255,255,255,0.4)" }}>
-            {String(current+1).padStart(2,"0")} / {String(slides.length).padStart(2,"0")}
-          </div>
-
-          {/* Progress bar */}
-          <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:5, height:2, background:"rgba(255,255,255,0.08)" }}>
-            <div style={{ height:"100%", background:"#C8922A", width:`${bar}%`, transition:paused?"none":"width 0.1s linear" }}/>
-          </div>
-        </>
+        <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:5, height:2, background:"rgba(255,255,255,0.08)" }}>
+          <div style={{ height:"100%", background:"#C8922A", width:`${bar}%`, transition:paused?"none":"width 0.1s linear" }}/>
+        </div>
       )}
 
       <style>{`
