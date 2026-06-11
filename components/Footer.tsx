@@ -1,9 +1,11 @@
 "use client";
 
-const PRINTIFY_STORE = "https://downrange-co.printify.me";
-
 export default function Footer() {
   const year = new Date().getFullYear();
+
+  const linkStyle = {
+    fontSize: "12px", color: "var(--muted)", textDecoration: "none", transition: "color 0.15s", display: "block",
+  } as const;
 
   return (
     <footer style={{ background: "var(--bg2)", borderTop: "1px solid rgba(255,255,255,0.06)", padding: "44px 32px 24px" }}>
@@ -11,7 +13,7 @@ export default function Footer() {
 
         {/* Brand */}
         <div>
-          <div style={{ marginBottom: "12px" }}>
+          <div style={{ marginBottom: "14px" }}>
             <img src="/logo.png" alt="Down Range Co." style={{ height: "130px", width: "auto", maxWidth: "520px", objectFit: "contain" }} />
           </div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.12em", color: "var(--muted)", textTransform: "uppercase", lineHeight: 1.8 }}>
@@ -21,21 +23,21 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Shop — all internal */}
+        {/* Shop */}
         <div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--gold)", marginBottom: "14px" }}>Shop</div>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "8px" }}>
             {[
               { label: "All Products",   href: "/products" },
               { label: "Hunting",        href: "/products?category=Hunting" },
               { label: "2A / Patriot",   href: "/products?category=2A+%2F+Patriot" },
               { label: "Military / Vet", href: "/products?category=Military+%2F+Vet" },
               { label: "Long Range",     href: "/products?category=Long+Range" },
-            ].map((l) => (
-              <li key={l.label} style={{ marginBottom: "8px" }}>
-                <a href={l.href} style={{ fontSize: "12px", color: "var(--muted)", textDecoration: "none", transition: "color 0.15s" }}
-                  onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "var(--text)")}
-                  onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "var(--muted)")}>
+            ].map(l => (
+              <li key={l.label}>
+                <a href={l.href} style={linkStyle}
+                  onMouseEnter={e => ((e.target as HTMLElement).style.color = "var(--text)")}
+                  onMouseLeave={e => ((e.target as HTMLElement).style.color = "var(--muted)")}>
                   {l.label}
                 </a>
               </li>
@@ -43,13 +45,22 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Info */}
+        {/* Info — all real links now */}
         <div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--gold)", marginBottom: "14px" }}>Info</div>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            {["Sizing Guide", "Shipping & Returns", "FAQ", "Contact"].map((l) => (
-              <li key={l} style={{ marginBottom: "8px" }}>
-                <span style={{ fontSize: "12px", color: "var(--muted)", cursor: "pointer" }}>{l}</span>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "8px" }}>
+            {[
+              { label: "Sizing Guide",      href: "/pages/sizing-guide" },
+              { label: "Shipping & Returns",href: "/pages/shipping-returns" },
+              { label: "FAQ",               href: "/pages/faq" },
+              { label: "Contact",           href: "/pages/contact" },
+            ].map(l => (
+              <li key={l.label}>
+                <a href={l.href} style={linkStyle}
+                  onMouseEnter={e => ((e.target as HTMLElement).style.color = "var(--text)")}
+                  onMouseLeave={e => ((e.target as HTMLElement).style.color = "var(--muted)")}>
+                  {l.label}
+                </a>
               </li>
             ))}
           </ul>
@@ -58,17 +69,18 @@ export default function Footer() {
         {/* Connect */}
         <div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--gold)", marginBottom: "14px" }}>Connect</div>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "8px" }}>
             {[
-              { label: "DownRange Portal", href: "https://downrangeco.com" },
+              { label: "DownRange Portal", href: "https://downrangeco.com", external: true },
+              { label: "My Account",       href: "https://shopify.com/83728892116/account", external: true },
               { label: "Instagram",        href: "#" },
               { label: "Facebook",         href: "#" },
-            ].map((l) => (
-              <li key={l.label} style={{ marginBottom: "8px" }}>
-                <a href={l.href} target={l.href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer"
-                  style={{ fontSize: "12px", color: "var(--muted)", textDecoration: "none", transition: "color 0.15s" }}
-                  onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "var(--text)")}
-                  onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "var(--muted)")}>
+            ].map(l => (
+              <li key={l.label}>
+                <a href={l.href} target={l.external ? "_blank" : undefined} rel={l.external ? "noopener noreferrer" : undefined}
+                  style={linkStyle}
+                  onMouseEnter={e => ((e.target as HTMLElement).style.color = "var(--text)")}
+                  onMouseLeave={e => ((e.target as HTMLElement).style.color = "var(--muted)")}>
                   {l.label}
                 </a>
               </li>
@@ -80,18 +92,24 @@ export default function Footer() {
       {/* Bottom bar */}
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "18px", display: "flex", justifyContent: "space-between", alignItems: "center", maxWidth: "1200px", margin: "0 auto", flexWrap: "wrap", gap: "12px" }}>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.1em", color: "var(--muted)", textTransform: "uppercase" }}>
-          © {year} Down Range Co. — All Rights Reserved
+          © {year} DownRange Co. — All Rights Reserved
         </div>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "var(--muted)", letterSpacing: "0.08em", display: "flex", gap: "20px" }}>
-          {["Privacy", "Terms", "2A Proud"].map((l) => (
-            <span key={l} style={{ cursor: "pointer" }}
-              onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "var(--gold)")}
-              onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "var(--muted)")}>
-              {l}
-            </span>
+          {[
+            { label: "Privacy",  href: "/pages/privacy" },
+            { label: "Terms",    href: "/pages/terms" },
+            { label: "2A Proud", href: "/pages/2a-proud" },
+          ].map(l => (
+            <a key={l.label} href={l.href} style={{ color: "var(--muted)", textDecoration: "none", transition: "color 0.15s" }}
+              onMouseEnter={e => ((e.target as HTMLElement).style.color = "var(--gold)")}
+              onMouseLeave={e => ((e.target as HTMLElement).style.color = "var(--muted)")}>
+              {l.label}
+            </a>
           ))}
         </div>
       </div>
+
+      <style>{`@media(max-width:900px){footer>div:first-child{grid-template-columns:1fr 1fr!important}}`}</style>
     </footer>
   );
 }

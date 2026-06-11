@@ -16,6 +16,7 @@ const TABS = [
   { id:"collections", icon:"⬡", label:"Collections" },
   { id:"storefront",  icon:"◉", label:"Storefront"  },
   { id:"store",       icon:"◈", label:"Store Info"  },
+  { id:"pages",       icon:"◌", label:"Pages"      },
 ] as const;
 type TabId = typeof TABS[number]["id"];
 
@@ -118,6 +119,7 @@ export default function AdminPanel() {
           {tab==="collections" && <CollectionsTab apiFetch={apiFetch}/>}
           {tab==="storefront"  && <StorefrontTab  adminKey={key} showToast={showToast}/>}
           {tab==="store"       && <StoreInfoTab   apiFetch={apiFetch}/>}
+          {tab==="pages"       && <PagesTab        adminKey={key} showToast={showToast}/>}
         </div>
       </div>
 
@@ -836,6 +838,66 @@ function HeroImageUpload({adminKey,showToast}:{adminKey:string;showToast:(m:stri
       </button>
       <div style={{fontFamily:"var(--font-mono)",fontSize:"8px",letterSpacing:"0.11em",textTransform:"uppercase",color:S.muted,marginTop:6}}>Upload commits directly to GitHub → Vercel auto-deploys in ~60 seconds. Requires GH_TOKEN in Vercel env vars.</div>
     </SideCard>
+  );
+}
+
+
+// ══════════════════════════════════════════════════════════════════════
+// PAGES TAB
+// ══════════════════════════════════════════════════════════════════════
+const MANAGED_PAGES = [
+  { slug:"sizing-guide",     label:"Sizing Guide",       section:"Info",  icon:"◈" },
+  { slug:"shipping-returns", label:"Shipping & Returns", section:"Info",  icon:"◎" },
+  { slug:"faq",              label:"FAQ",                section:"Info",  icon:"◉" },
+  { slug:"contact",          label:"Contact",            section:"Info",  icon:"◌" },
+  { slug:"privacy",          label:"Privacy Policy",     section:"Legal", icon:"◈" },
+  { slug:"terms",            label:"Terms of Service",   section:"Legal", icon:"◎" },
+  { slug:"2a-proud",         label:"2A Proud",           section:"Brand", icon:"◉" },
+];
+function PagesTab({adminKey,showToast}:any){
+  const sections=[...new Set(MANAGED_PAGES.map(p=>p.section))];
+  return (
+    <div>
+      <div style={{marginBottom:28}}>
+        <div style={{fontFamily:"var(--font-bebas)",fontSize:38,letterSpacing:"0.04em"}}>
+          PAGES <span style={{color:S.gold}}>(7)</span>
+        </div>
+        <div style={{...mono(9),color:S.muted}}>All store pages — preview or manage</div>
+      </div>
+      {sections.map(section=>(
+        <div key={section} style={{marginBottom:28}}>
+          <div style={{...mono(10),color:S.gold,marginBottom:12,display:"flex",alignItems:"center",gap:8}}>
+            <span style={{width:20,height:1,background:S.gold,display:"inline-block"}}/>
+            {section}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:10}}>
+            {MANAGED_PAGES.filter(p=>p.section===section).map(page=>(
+              <div key={page.slug} style={{background:S.card,border:`1px solid ${S.border}`,padding:20,transition:"border-color 0.15s"}}
+                onMouseEnter={e=>(e.currentTarget as HTMLElement).style.borderColor=S.goldBorder}
+                onMouseLeave={e=>(e.currentTarget as HTMLElement).style.borderColor=S.border}>
+                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:12}}>
+                  <div>
+                    <div style={{fontSize:18,color:S.gold,opacity:0.6,marginBottom:6}}>{page.icon}</div>
+                    <div style={{fontFamily:"var(--font-bebas)",fontSize:18,letterSpacing:"0.06em",color:S.text}}>{page.label}</div>
+                    <div style={{...mono(9),color:S.muted,marginTop:2}}>/pages/{page.slug}</div>
+                  </div>
+                  <span style={{...mono(8),padding:"3px 8px",background:"rgba(42,106,58,0.2)",border:"1px solid #3a8a4a",color:"#6adb8a"}}>Live</span>
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <a href={`/pages/${page.slug}`} target="_blank" rel="noopener noreferrer"
+                    style={{flex:1,background:S.goldDim,border:`1px solid ${S.goldBorder}`,color:S.gold,fontFamily:"var(--font-mono)",fontSize:"9px",letterSpacing:"0.11em",textTransform:"uppercase" as const,padding:"8px",textDecoration:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
+                    Preview ↗
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      <div style={{background:"rgba(200,146,42,0.06)",border:`1px solid rgba(200,146,42,0.2)`,padding:"16px 20px",...mono(9),color:S.muted,lineHeight:1.8}}>
+        <span style={{color:S.gold}}>Pages</span> are managed in the codebase at <span style={{color:S.text}}>app/pages/[slug]/page.tsx</span>. Hero text is editable in the Storefront tab.
+      </div>
+    </div>
   );
 }
 
