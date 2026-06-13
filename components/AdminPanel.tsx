@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import PageEditor from "@/components/PageEditor";
+import IdeogramTab from "@/components/IdeogramTab";
 
 // ── Design tokens ──────────────────────────────────────────────────────────
 const S = {
@@ -24,6 +25,7 @@ const TABS = [
   { id:"ops",         icon:"◎", label:"Operations",   badge:null },
   { id:"store",       icon:"◈", label:"Store Info",   badge:null },
   { id:"social",      icon:"◉", label:"Social Media",  badge:null },
+  { id:"ideogram",    icon:"◈", label:"Image Gen",     badge:null },
 ] as const;
 type TabId = typeof TABS[number]["id"];
 
@@ -198,6 +200,7 @@ export default function AdminPanel() {
           {tab==="ops"         && <OpsTab         adminKey={key} onAlerts={setAlerts}/>}
           {tab==="store"       && <StoreInfoTab   apiFetch={apiFetch}/>}
           {tab==="social"      && <SocialMediaTab  adminKey={key}/>}
+          {tab==="ideogram"    && <IdeogramTab     adminKey={key} showToast={showToast}/>}
         </div>
       </main>
 
