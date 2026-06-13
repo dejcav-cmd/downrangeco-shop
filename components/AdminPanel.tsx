@@ -191,7 +191,7 @@ export default function AdminPanel() {
         <div style={{ flex:1, overflowY:"auto", padding:"24px 28px 60px" }}>
           {tab==="dashboard"   && <DashboardTab   apiFetch={apiFetch} setTab={setTab} adminKey={key} onAlerts={setAlerts}/>}
           {tab==="orders"      && <OrdersTab      apiFetch={apiFetch} apiPost={apiPost} showToast={showToast}/>}
-          {tab==="products"    && <ProductsTab    apiFetch={apiFetch} apiPost={apiPost} showToast={showToast}/>}
+          {tab==="products"    && <ProductsTab    apiFetch={apiFetch} apiPost={apiPost} showToast={showToast} adminKey={key}/>}
           {tab==="storefront"  && <StorefrontTab  adminKey={key} showToast={showToast}/>}
           {tab==="collections" && <CollectionsTab apiFetch={apiFetch}/>}
           {tab==="pages"       && <PageEditor     adminKey={key} showToast={showToast}/>}
@@ -1025,11 +1025,27 @@ function StorefrontTab({adminKey,showToast}:{adminKey:string;showToast:(m:string
 // ══════════════════════════════════════════════════════════════════════
 // PRODUCTS
 // ══════════════════════════════════════════════════════════════════════
-function ProductsTab({apiFetch,apiPost,showToast}:any){
+function ProductsTab({apiFetch,apiPost,showToast,adminKey}:any){
   const [products, setProducts] = useState<any[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [search,   setSearch]   = useState("");
   const [editing,  setEditing]  = useState<any>(null);
+  const [pulling,  setPulling]  = useState(false);
+  const [lastPull, setLastPull] = useState("");
+
+  const pullNow = useCallback(async()=>{
+    setPulling(true);
+    try {
+      const res = await fetch("/api/ops/pull-products",{method:"POST",headers:{"x-admin-key":showToast.__adminKey??adminKey}});
+      const d   = await res.json();
+      if(!res.ok||!d.ok) throw new Error(d.error??"Pull failed");
+      setLastPull(new Date().toLocaleTimeString());
+      showToast(`✓ Pulled ${d.count} products (${d.elapsed})`,"ok");
+      await load();
+    } catch(e:any){
+      showToast(e.message,"err");
+    } finally { setPulling(false); }
+  },[adminKey,showToast,load]);
 
   const load = useCallback(async()=>{
     setLoading(true);
@@ -1046,7 +1062,13 @@ function ProductsTab({apiFetch,apiPost,showToast}:any){
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10}}>
         <div style={{fontFamily:F,fontSize:34,letterSpacing:"0.04em"}}>PRODUCTS <span style={{color:S.gold}}>{products.length>0?`(${products.length})`:""}</span></div>
-        <input placeholder="Search products…" value={search} onChange={e=>setSearch(e.target.value)} style={{...iStyle(),width:240}}/>
+        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+          {lastPull&&<span style={{...m(7),color:S.muted}}>Last pull: {lastPull}</span>}
+          <Btn onClick={pullNow} disabled={pulling} size="sm">
+            {pulling?"⟳ Pulling…":"⬇ Pull Now"}
+          </Btn>
+          <input placeholder="Search products…" value={search} onChange={e=>setSearch(e.target.value)} style={{...iStyle(),width:220}}/>
+        </div>
       </div>
       {loading&&<LoadingBar/>}
       <div style={{border:`1px solid ${S.border}`}}>
