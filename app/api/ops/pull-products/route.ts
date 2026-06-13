@@ -31,10 +31,11 @@ async function fetchAllPublishedProducts() {
 
   let products: any[] = [];
   let cursor: string | null = null;
+  let afterClause: string = "";
   let hasNext = true;
 
   while (hasNext) {
-    const afterClause = cursor ? `, after: "${cursor}"` : "";
+    afterClause = cursor ? `, after: "${cursor}"` : "";
     const query = `{
       products(first: 250, sortKey: UPDATED_AT, reverse: true${afterClause}) {
         nodes {
@@ -125,3 +126,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, cached: null });
   }
 }
+
+
