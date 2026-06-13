@@ -1035,7 +1035,7 @@ function ProductsTab({apiFetch,apiPost,showToast,adminKey}:any){
 
   const load = useCallback(async()=>{
     setLoading(true);
-    try { const d=await apiFetch({action:"list_products",limit:"250"}); setProducts(d.products??[]); }
+    try { const d=await apiFetch({action:"products"}); setProducts(d.products??[]); }
     catch {} finally { setLoading(false); }
   },[apiFetch]);
 
