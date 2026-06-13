@@ -48,7 +48,6 @@ async function fetchAllPublishedProducts() {
           images(first: 1) { nodes { url } }
           productType
           tags
-          totalVariants
         }
         pageInfo { hasNextPage endCursor }
       }
