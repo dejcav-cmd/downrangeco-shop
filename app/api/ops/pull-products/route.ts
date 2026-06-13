@@ -4,11 +4,38 @@ import { revalidatePath } from "next/cache";
 export const dynamic     = "force-dynamic";
 export const maxDuration = 60;
 
-const ADMIN_KEY   = process.env.ADMIN_KEY ?? "bc081ac920174e0ca49d7f95518a9ce5f8c8d744";
-const KV_URL      = process.env.UPSTASH_REDIS_REST_URL;
-const KV_TOKEN    = process.env.UPSTASH_REDIS_REST_TOKEN;
-const SHOP        = process.env.SHOPIFY_STORE_DOMAIN ?? "";
-const ADMIN_TOKEN = process.env.SHOPIFY_ADMIN_API_TOKEN ?? process.env.SHOPIFY_TOKEN ?? "";
+const ADMIN_KEY     = process.env.ADMIN_KEY ?? "bc081ac920174e0ca49d7f95518a9ce5f8c8d744";
+const KV_URL        = process.env.UPSTASH_REDIS_REST_URL;
+const KV_TOKEN      = process.env.UPSTASH_REDIS_REST_TOKEN;
+const SHOP          = process.env.SHOPIFY_STORE_DOMAIN ?? "";
+const CLIENT_ID     = process.env.SHOPIFY_ADMIN_CLIENT_ID ?? "";
+const CLIENT_SECRET = process.env.SHOPIFY_ADMIN_CLIENT_SECRET ?? "";
+const ADMIN_BASE    = `https://${SHOP}/admin/api/2024-01`;
+
+// ── OAuth token cache (same pattern as /api/admin/route.ts) ──────────
+let cachedToken: string | null = null;
+let tokenExpiry: number = 0;
+
+async function getAccessToken(): Promise<string> {
+  if (cachedToken && Date.now() < tokenExpiry - 60_000) return cachedToken;
+  const res: Response = await fetch(
+    `https://${SHOP}/admin/oauth/access_token`,
+    {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET, grant_type: "client_credentials" }),
+      cache:   "no-store",
+    }
+  );
+  if (!res.ok) {
+    const text: string = await res.text();
+    throw new Error(`Token exchange failed ${res.status}: ${text.slice(0, 200)}`);
+  }
+  const data: { access_token: string; expires_in?: number } = await res.json();
+  cachedToken = data.access_token;
+  tokenExpiry = Date.now() + (data.expires_in ?? 86400) * 1000;
+  return cachedToken;
+}
 
 function auth(req: NextRequest): boolean {
   const k = req.headers.get("x-admin-key") ?? req.headers.get("authorization")?.replace("Bearer ", "");
@@ -25,28 +52,22 @@ async function kvSet(key: string, value: unknown): Promise<void> {
 }
 
 async function fetchAllProducts(): Promise<unknown[]> {
+  const token: string = await getAccessToken();
   const products: unknown[] = [];
-  let nextUrl: string | null =
-    `https://${SHOP}/admin/api/2024-01/products.json?limit=250&status=any`;
+  let nextUrl: string | null = `${ADMIN_BASE}/products.json?limit=250&status=any`;
 
   while (nextUrl) {
     const res: Response = await fetch(nextUrl, {
-      headers: {
-        "X-Shopify-Access-Token": ADMIN_TOKEN,
-        "Content-Type": "application/json",
-      },
-      signal: AbortSignal.timeout(30000),
+      headers: { "X-Shopify-Access-Token": token, "Content-Type": "application/json" },
+      signal:  AbortSignal.timeout(30000),
+      cache:   "no-store",
     });
-
     if (!res.ok) {
       const txt: string = await res.text();
       throw new Error(`Shopify Admin API ${res.status}: ${txt.slice(0, 200)}`);
     }
-
     const data: { products?: unknown[] } = await res.json();
     products.push(...(data.products ?? []));
-
-    // Follow Shopify pagination via Link header
     const link: string = res.headers.get("link") ?? "";
     const next: string | null = link.match(/<([^>]+)>;\s*rel="next"/)?.[1] ?? null;
     nextUrl = next;
@@ -59,7 +80,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!auth(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const started = Date.now();
-
   try {
     const products = await fetchAllProducts();
 
@@ -75,7 +95,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     revalidatePath("/collections");
 
     const elapsed = Date.now() - started;
-
     return NextResponse.json({
       ok:      true,
       count:   products.length,
@@ -83,7 +102,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       ts:      new Date().toISOString(),
       message: `Pulled ${products.length} products from Shopify and revalidated cache.`,
     });
-
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
@@ -92,7 +110,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   if (!auth(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   try {
     if (!KV_URL || !KV_TOKEN) return NextResponse.json({ ok: true, cached: null });
     const res: Response = await fetch(
@@ -100,7 +117,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       { headers: { Authorization: `Bearer ${KV_TOKEN}` } }
     );
     const d: { result?: string } = await res.json();
-    const cached = d.result ? JSON.parse(d.result) : null;
+    const cached: unknown = d.result ? JSON.parse(d.result) : null;
     return NextResponse.json({ ok: true, cached });
   } catch {
     return NextResponse.json({ ok: true, cached: null });
