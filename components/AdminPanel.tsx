@@ -1033,10 +1033,16 @@ function ProductsTab({apiFetch,apiPost,showToast,adminKey}:any){
   const [pulling,  setPulling]  = useState(false);
   const [lastPull, setLastPull] = useState("");
 
+  const load = useCallback(async()=>{
+    setLoading(true);
+    try { const d=await apiFetch({action:"list_products",limit:"250"}); setProducts(d.products??[]); }
+    catch {} finally { setLoading(false); }
+  },[apiFetch]);
+
   const pullNow = useCallback(async()=>{
     setPulling(true);
     try {
-      const res = await fetch("/api/ops/pull-products",{method:"POST",headers:{"x-admin-key":showToast.__adminKey??adminKey}});
+      const res = await fetch("/api/ops/pull-products",{method:"POST",headers:{"x-admin-key":adminKey}});
       const d   = await res.json();
       if(!res.ok||!d.ok) throw new Error(d.error??"Pull failed");
       setLastPull(new Date().toLocaleTimeString());
@@ -1047,11 +1053,6 @@ function ProductsTab({apiFetch,apiPost,showToast,adminKey}:any){
     } finally { setPulling(false); }
   },[adminKey,showToast,load]);
 
-  const load = useCallback(async()=>{
-    setLoading(true);
-    try { const d=await apiFetch({action:"list_products",limit:"250"}); setProducts(d.products??[]); }
-    catch {} finally { setLoading(false); }
-  },[apiFetch]);
   useEffect(()=>{ load(); },[load]);
 
   if(editing) return <ProductEditor product={editing} apiPost={apiPost} showToast={showToast} onBack={()=>{setEditing(null);load();}}/>;
