@@ -4,29 +4,25 @@ import { revalidatePath } from "next/cache";
 export const dynamic     = "force-dynamic";
 export const maxDuration = 60;
 
-const ADMIN_KEY     = process.env.ADMIN_KEY ?? "bc081ac920174e0ca49d7f95518a9ce5f8c8d744";
-const KV_URL        = process.env.UPSTASH_REDIS_REST_URL;
-const KV_TOKEN      = process.env.UPSTASH_REDIS_REST_TOKEN;
-const SHOP          = process.env.SHOPIFY_STORE_DOMAIN ?? "";
-const CLIENT_ID     = process.env.SHOPIFY_ADMIN_CLIENT_ID ?? "";
+const ADMIN_KEY  = process.env.ADMIN_KEY ?? "bc081ac920174e0ca49d7f95518a9ce5f8c8d744";
+const KV_URL     = process.env.UPSTASH_REDIS_REST_URL;
+const KV_TOKEN   = process.env.UPSTASH_REDIS_REST_TOKEN;
+const SHOP       = process.env.SHOPIFY_STORE_DOMAIN ?? "";
+const CLIENT_ID  = process.env.SHOPIFY_ADMIN_CLIENT_ID ?? "";
 const CLIENT_SECRET = process.env.SHOPIFY_ADMIN_CLIENT_SECRET ?? "";
-const ADMIN_BASE    = `https://${SHOP}/admin/api/2024-01`;
+const ADMIN_BASE = `https://${SHOP}/admin/api/2024-01`;
 
-// ── OAuth token cache (same pattern as /api/admin/route.ts) ──────────
 let cachedToken: string | null = null;
 let tokenExpiry: number = 0;
 
 async function getAccessToken(): Promise<string> {
   if (cachedToken && Date.now() < tokenExpiry - 60_000) return cachedToken;
-  const res: Response = await fetch(
-    `https://${SHOP}/admin/oauth/access_token`,
-    {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET, grant_type: "client_credentials" }),
-      cache:   "no-store",
-    }
-  );
+  const res: Response = await fetch(`https://${SHOP}/admin/oauth/access_token`, {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET, grant_type: "client_credentials" }),
+    cache:   "no-store",
+  });
   if (!res.ok) {
     const text: string = await res.text();
     throw new Error(`Token exchange failed ${res.status}: ${text.slice(0, 200)}`);
@@ -35,6 +31,20 @@ async function getAccessToken(): Promise<string> {
   cachedToken = data.access_token;
   tokenExpiry = Date.now() + (data.expires_in ?? 86400) * 1000;
   return cachedToken;
+}
+
+async function shopifyAdmin(path: string): Promise<Record<string, unknown>> {
+  const token: string = await getAccessToken();
+  const res: Response = await fetch(`${ADMIN_BASE}${path}`, {
+    headers: { "X-Shopify-Access-Token": token, "Content-Type": "application/json" },
+    cache:   "no-store",
+    signal:  AbortSignal.timeout(30000),
+  });
+  if (!res.ok) {
+    const txt: string = await res.text();
+    throw new Error(`Shopify ${res.status}: ${txt.slice(0, 300)}`);
+  }
+  return res.json();
 }
 
 function auth(req: NextRequest): boolean {
@@ -52,25 +62,36 @@ async function kvSet(key: string, value: unknown): Promise<void> {
 }
 
 async function fetchAllProducts(): Promise<unknown[]> {
-  const token: string = await getAccessToken();
-  const products: unknown[] = [];
-  let nextUrl: string | null = `${ADMIN_BASE}/products.json?limit=250&status=any`;
+  // Get total count first
+  const countData = await shopifyAdmin("/products/count.json") as { count?: number };
+  const total: number = countData.count ?? 0;
+  if (total === 0) return [];
 
-  while (nextUrl) {
-    const res: Response = await fetch(nextUrl, {
+  // Fetch all pages using page_info cursor pagination
+  const products: unknown[] = [];
+  const fields = "id,title,status,variants,images,product_type,tags,vendor,handle,body_html,created_at,updated_at";
+  
+  // First page
+  let url: string = `${ADMIN_BASE}/products.json?limit=250&fields=${fields}`;
+  const token: string = await getAccessToken();
+
+  while (url) {
+    const res: Response = await fetch(url, {
       headers: { "X-Shopify-Access-Token": token, "Content-Type": "application/json" },
-      signal:  AbortSignal.timeout(30000),
       cache:   "no-store",
+      signal:  AbortSignal.timeout(30000),
     });
     if (!res.ok) {
       const txt: string = await res.text();
-      throw new Error(`Shopify Admin API ${res.status}: ${txt.slice(0, 200)}`);
+      throw new Error(`Shopify ${res.status}: ${txt.slice(0, 300)}`);
     }
     const data: { products?: unknown[] } = await res.json();
     products.push(...(data.products ?? []));
+
+    // Shopify page_info cursor from Link header
     const link: string = res.headers.get("link") ?? "";
-    const next: string | null = link.match(/<([^>]+)>;\s*rel="next"/)?.[1] ?? null;
-    nextUrl = next;
+    const match: RegExpMatchArray | null = link.match(/<([^>]+page_info=[^>]+)>;\s*rel="next"/);
+    url = match ? match[1] : "";
   }
 
   return products;
