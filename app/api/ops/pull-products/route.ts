@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 
 export const dynamic    = "force-dynamic";
 export const maxDuration = 60;
@@ -93,7 +93,6 @@ export async function POST(req: NextRequest) {
     revalidatePath("/");
     revalidatePath("/products");
     revalidatePath("/collections");
-    try { revalidateTag("products"); } catch {}
 
     const elapsed = Date.now() - started;
 
@@ -126,5 +125,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, cached: null });
   }
 }
+
 
 
