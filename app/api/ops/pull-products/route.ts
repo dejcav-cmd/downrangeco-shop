@@ -4,18 +4,18 @@ import { revalidatePath } from "next/cache";
 export const dynamic     = "force-dynamic";
 export const maxDuration = 60;
 
-const ADMIN_KEY  = process.env.ADMIN_KEY ?? "bc081ac920174e0ca49d7f95518a9ce5f8c8d744";
-const KV_URL     = process.env.UPSTASH_REDIS_REST_URL;
-const KV_TOKEN   = process.env.UPSTASH_REDIS_REST_TOKEN;
-const SHOP       = process.env.SHOPIFY_STORE_DOMAIN!;
+const ADMIN_KEY   = process.env.ADMIN_KEY ?? "bc081ac920174e0ca49d7f95518a9ce5f8c8d744";
+const KV_URL      = process.env.UPSTASH_REDIS_REST_URL;
+const KV_TOKEN    = process.env.UPSTASH_REDIS_REST_TOKEN;
+const SHOP        = process.env.SHOPIFY_STORE_DOMAIN ?? "";
 const ADMIN_TOKEN = process.env.SHOPIFY_ADMIN_API_TOKEN ?? process.env.SHOPIFY_TOKEN ?? "";
 
-function auth(req: NextRequest) {
+function auth(req: NextRequest): boolean {
   const k = req.headers.get("x-admin-key") ?? req.headers.get("authorization")?.replace("Bearer ", "");
   return k === ADMIN_KEY;
 }
 
-async function kvSet(key: string, value: any) {
+async function kvSet(key: string, value: unknown): Promise<void> {
   if (!KV_URL || !KV_TOKEN) return;
   await fetch(`${KV_URL}/set/${encodeURIComponent(key)}`, {
     method:  "POST",
@@ -24,13 +24,13 @@ async function kvSet(key: string, value: any) {
   });
 }
 
-async function fetchAllProducts(): Promise<any[]> {
-  const products: any[] = [];
-  let url: string | null =
+async function fetchAllProducts(): Promise<unknown[]> {
+  const products: unknown[] = [];
+  let nextUrl: string | null =
     `https://${SHOP}/admin/api/2024-01/products.json?limit=250&status=any`;
 
-  while (url) {
-    const res = await fetch(url, {
+  while (nextUrl) {
+    const res: Response = await fetch(nextUrl, {
       headers: {
         "X-Shopify-Access-Token": ADMIN_TOKEN,
         "Content-Type": "application/json",
@@ -39,23 +39,23 @@ async function fetchAllProducts(): Promise<any[]> {
     });
 
     if (!res.ok) {
-      const txt = await res.text();
+      const txt: string = await res.text();
       throw new Error(`Shopify Admin API ${res.status}: ${txt.slice(0, 200)}`);
     }
 
-    const data = await res.json();
+    const data: { products?: unknown[] } = await res.json();
     products.push(...(data.products ?? []));
 
-    // Follow pagination via Link header
-    const link = res.headers.get("link") ?? "";
-    const next = link.match(/<([^>]+)>;\s*rel="next"/)?.[1] ?? null;
-    url = next;
+    // Follow Shopify pagination via Link header
+    const link: string = res.headers.get("link") ?? "";
+    const next: string | null = link.match(/<([^>]+)>;\s*rel="next"/)?.[1] ?? null;
+    nextUrl = next;
   }
 
   return products;
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!auth(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const started = Date.now();
@@ -81,23 +81,25 @@ export async function POST(req: NextRequest) {
       count:   products.length,
       elapsed: `${elapsed}ms`,
       ts:      new Date().toISOString(),
-      message: `Pulled ${products.length} products from Shopify Admin API and revalidated storefront cache.`,
+      message: `Pulled ${products.length} products from Shopify and revalidated cache.`,
     });
 
-  } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest): Promise<NextResponse> {
   if (!auth(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     if (!KV_URL || !KV_TOKEN) return NextResponse.json({ ok: true, cached: null });
-    const r = await fetch(`${KV_URL}/get/${encodeURIComponent("drshop:products:cache")}`, {
-      headers: { Authorization: `Bearer ${KV_TOKEN}` },
-    });
-    const d      = await r.json();
+    const res: Response = await fetch(
+      `${KV_URL}/get/${encodeURIComponent("drshop:products:cache")}`,
+      { headers: { Authorization: `Bearer ${KV_TOKEN}` } }
+    );
+    const d: { result?: string } = await res.json();
     const cached = d.result ? JSON.parse(d.result) : null;
     return NextResponse.json({ ok: true, cached });
   } catch {
