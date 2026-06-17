@@ -3,7 +3,7 @@ import ProductGrid from "@/components/ProductGrid";
 import Masthead from "@/components/Masthead";
 import Footer from "@/components/Footer";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 export default async function ProductsPage({ searchParams }: { searchParams: Promise<{ cursor?: string; category?: string }> }) {
   const params = await searchParams;
