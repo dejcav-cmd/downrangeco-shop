@@ -19,8 +19,7 @@ async function shopifyFetch<T>(query: string, variables?: Record<string, any>, c
       [tokenHeader]: STOREFRONT_TOKEN,
     },
     body: JSON.stringify({ query, variables }),
-    next: { revalidate: 300 },
-    cache,
+    cache: "no-store",
   });
   if (!res.ok) throw new Error(`Shopify API error: ${res.status}`);
   const json = await res.json();
