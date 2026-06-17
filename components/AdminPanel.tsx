@@ -183,7 +183,7 @@ export default function AdminPanel() {
           </div>
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             <div style={{ width:6, height:6, borderRadius:"50%", background:S.greenText, animation:"drPulse 2s ease-in-out infinite" }}/>
-            <span style={{ ...m(8), color:S.muted }}>cqgd4u-mb.myshopify.com</span>
+            <span style={{ ...m(8), color:S.muted }}>downrange-co.myshopify.com</span>
           </div>
         </div>
 
