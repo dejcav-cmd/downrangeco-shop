@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "ts": "2026-06-23T06:01:33.128Z",
+    "commitSha": "d29dc70c",
+    "source": "vercel-cron",
+    "site": "shop.downrangeco.com"
+  },
+  "redis": {
+    "drshop:hero:slides:v2": "{\"value\":\"[{\\\"id\\\":\\\"slide-1\\\",\\\"image\\\":\\\"/hero.jpg\\\",\\\"eyebrow\\\":\\\"Built for the Field — Summer 2026\\\",\\\"title_line1\\\":\\\"GEAR FOR\\\",\\\"title_line2\\\":\\\"HUNTERS,\\\",\\\"title_line3\\\":\\\"SHOOTERS\\\",\\\"title_line4\\\":\\\"& THE 2A.\\\",\\\"accent_word\\\":\\\"SHOOTERS\\\",\\\"subtitle\\\":\\\"Premium print-on-demand apparel for those who live it. No compromise. Washington-owned, American-printed.\\\",\\\"cta_primary\\\":\\\"Shop All Products\\\",\\\"cta_primary_url\\\":\\\"/products\\\",\\\"cta_secondary\\\":\\\"Browse Categories\\\",\\\"overlay_opacity\\\":85,\\\"active\\\":true,\\\"position\\\":0},{\\\"id\\\":\\\"slide-2\\\",\\\"image\\\":\\\"/hero-nathalie-stimpfl-aqduy-0teag-unsplash.jpg\\\",\\\"eyebrow\\\":\\\"Opening Day Ready\\\",\\\"title_line1\\\":\\\"HUNTING\\\",\\\"title_line2\\\":\\\"SEASON\\\",\\\"title_line3\\\":\\\"STARTS HERE.\\\",\\\"accent_word\\\":\\\"SEASON\\\",\\\"subtitle\\\":\\\"Elk, whitetail, waterfowl, bear. Designs made by someone who hunts public land in Washington State.\\\",\\\"cta_primary\\\":\\\"Shop Hunting\\\",\\\"cta_primary_url\\\":\\\"/collections/hunting\\\",\\\"cta_secondary\\\":\\\"Our Story\\\",\\\"overlay_opacity\\\":80,\\\"active\\\":true,\\\"position\\\":1},{\\\"id\\\":\\\"slide-3\\\",\\\"image\\\":\\\"/hero-pascal-van-de-vendel-xhd49fkozw0-unsplash.jpg\\\",\\\"eyebrow\\\":\\\"Shall Not Be Infringed\\\",\\\"title_line1\\\":\\\"2A PROUD.\\\",\\\"title_line2\\\":\\\"NO\\\",\\\"title_line3\\\":\\\"APOLOGIES.\\\",\\\"accent_word\\\":\\\"NO\\\",\\\"subtitle\\\":\\\"The Second Amendment is the right that protects all the others. Wear it. Live it. No compromise.\\\",\\\"cta_primary\\\":\\\"Shop 2A Gear\\\",\\\"cta_primary_url\\\":\\\"/collections/2a-patriot\\\",\\\"cta_secondary\\\":\\\"Read Our Stance\\\",\\\"overlay_opacity\\\":88,\\\"active\\\":true,\\\"position\\\":2},{\\\"id\\\":\\\"slide-4\\\",\\\"image\\\":\\\"/hero-daniel-peters-2tvkovk8prc-unsplash.jpg\\\",\\\"eyebrow\\\":\\\"Honor. Service. Brotherhood.\\\",\\\"title_line1\\\":\\\"MILITARY\\\",\\\"title_line2\\\":\\\"& VETERAN\\\",\\\"title_line3\\\":\\\"PROUD.\\\",\\\"accent_word\\\":\\\"VETERAN\\\",\\\"subtitle\\\":\\\"Designs built for those who served and those who still carry the mission. American-made, American-worn.\\\",\\\"cta_primary\\\":\\\"Shop Military / Vet\\\",\\\"cta_primary_url\\\":\\\"/collections/military-vet\\\",\\\"cta_secondary\\\":\\\"Our Story\\\",\\\"overlay_opacity\\\":86,\\\"active\\\":true,\\\"position\\\":3}]\"}"
+  },
+  "env_check": {
+    "upstash": true,
+    "github": true,
+    "twilio": true,
+    "shopify": true,
+    "adminKey": true
+  }
+}
